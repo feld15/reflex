@@ -1,0 +1,1010 @@
+<meta name="robots" content="noindex, nofollow">
+<style>
+  :root{
+    --ink:#2B2620;
+    --paper:#EFE8D8;
+    --paper-2:#F7F2E6;
+    --line:#D9CFB6;
+    --ok:#3F6E52;
+    --ok-bg:#E4EEE3;
+    --warn:#B0472F;
+    --warn-bg:#F5E1D8;
+    --gold:#B07E2C;
+  }
+  * { box-sizing: border-box; }
+  body, .wrap { font-family: Georgia, 'Iowan Old Style', serif; color: var(--ink); }
+  .wrap { background: var(--paper); border-radius: 12px; padding: 24px; }
+  .top { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:18px; border-bottom:2px solid var(--ink); padding-bottom:12px; flex-wrap:wrap; gap:10px; }
+  .top h1 { font-size:22px; margin:0; letter-spacing:0.3px; }
+  .top p { margin:2px 0 0; font-size:13px; color:#6b5f4a; font-style:italic; }
+  .summary { display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
+  .stat { flex:1; min-width:100px; background: var(--paper-2); border:1px solid var(--line); border-radius:8px; padding:10px 14px; text-align:center; }
+  .stat b { display:block; font-size:22px; font-family: 'Courier New', monospace; }
+  .stat span { font-size:11px; color:#6b5f4a; text-transform:uppercase; letter-spacing:0.5px; }
+  .stat.warn b { color: var(--warn); }
+  .stat.ok b { color: var(--ok); }
+  .exportbtn { background:#1f7a4d; color:#fff; border:none; border-radius:8px; padding:0 16px; font-family: Georgia, serif; font-size:13px; cursor:pointer; white-space:nowrap; height:34px; }
+  .exportbtn:hover { background:#175f3b; }
+  .exportbtn.simplebtn { background:#2E6E8C; }
+  .exportbtn.simplebtn:hover { background:#25576f; }
+  .export-actions { display:flex; gap:8px; }
+  h2.section { font-size:15px; margin:24px 0 10px; border-top:1px dashed var(--line); padding-top:16px; }
+  form.add { display:grid; grid-template-columns: 1.2fr 0.8fr 0.9fr 0.8fr 0.8fr 0.9fr 0.8fr 0.9fr auto; gap:8px; margin-bottom:20px; align-items:end; }
+  form.move { display:grid; grid-template-columns: 2fr 1fr 1fr auto; gap:8px; margin-bottom:20px; align-items:end; }
+  form.moveout { display:grid; grid-template-columns: 2fr 1fr auto; gap:8px; margin-bottom:20px; align-items:end; }
+  @media (max-width: 950px) { form.add, form.move, form.moveout { grid-template-columns: 1fr 1fr; } }
+  form.add label, form.move label, form.moveout label { font-size:11px; color:#6b5f4a; display:block; margin-bottom:3px; text-transform:uppercase; letter-spacing:0.4px; }
+  form.add input, form.move input, form.move select, form.moveout input, form.moveout select { width:100%; font-family: 'Courier New', monospace; font-size:14px; padding:7px 8px; border:1px solid var(--line); border-radius:6px; background:var(--paper-2); color:var(--ink); }
+  form.add input:focus, form.move input:focus, form.move select:focus, form.moveout input:focus, form.moveout select:focus { outline:2px solid var(--gold); outline-offset:1px; }
+  button.addbtn { background:var(--ink); color:var(--paper-2); border:none; border-radius:6px; padding:8px 14px; font-family: Georgia, serif; font-size:13px; cursor:pointer; height:34px; }
+  button.addbtn:hover { background:#453d30; }
+  button.outbtn { background:var(--warn); }
+  button.outbtn:hover { background:#8f371f; }
+  .list { display:flex; flex-direction:column; gap:6px; }
+  .cat-section { margin-bottom:14px; }
+  .cat-title { font-size:13px; text-transform:uppercase; letter-spacing:0.6px; color:#6b5f4a; border-bottom:1px solid var(--line); padding-bottom:5px; margin:0 0 8px; }
+  .subcat-title { font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--gold); margin:10px 0 6px 4px; }
+  .subcat-title:first-of-type { margin-top:0; }
+  .cat-section .row { margin-bottom:8px; }
+  .row { display:flex; align-items:center; gap:10px; background: var(--paper-2); border:1px solid var(--line); border-radius:8px; padding:10px 12px; flex-wrap:wrap; }
+  .row.missing { border-color: var(--warn); background: var(--warn-bg); }
+  .rowname { flex:1; min-width:180px; }
+  .rowname b { display:block; font-size:14px; }
+  .rowname span { font-size:11px; color:#6b5f4a; }
+  .cat-badge { display:inline-block; font-size:10px; text-transform:uppercase; letter-spacing:0.4px; background:var(--gold); color:#fff; padding:1px 7px; border-radius:10px; margin-left:6px; vertical-align:middle; }
+  .tipo-badge { background: #DCEAF0; color: #1F4E5F; }
+  .tag { font-family:'Courier New', monospace; font-size:12px; font-weight:bold; padding:5px 12px; border-radius:20px; white-space:nowrap; }
+  .tag.warn { background: var(--warn); color:#fff; }
+  .tag.ok { background: #E4EEE3; color: #1E4A30; border: 1px solid #9CC4AC; }
+  .del { background:none; border:none; color:#9a8c6f; cursor:pointer; font-size:16px; padding:4px; line-height:1; }
+  .del:hover { color: var(--warn); }
+  .edit { background:none; border:none; color:#9a8c6f; cursor:pointer; font-size:15px; padding:4px; line-height:1; }
+  .edit:hover { color: var(--gold); }
+  .qtyedit { background:none; border:none; color:#9a8c6f; cursor:pointer; font-size:15px; padding:4px; line-height:1; }
+  .qtyedit:hover { color: #2E6E8C; }
+  .empty { text-align:center; padding:30px; color:#6b5f4a; font-style:italic; }
+  .loading { text-align:center; padding:20px; color:#6b5f4a; }
+  .hint { font-size:11px; color:#6b5f4a; margin:-8px 0 16px; }
+  .combo-wrap { position:relative; }
+  .combo-suggestions { display:none; position:absolute; top:100%; left:0; right:0; margin-top:2px; background:var(--paper-2); border:1px solid var(--line); border-radius:6px; max-height:190px; overflow-y:auto; z-index:30; box-shadow:0 4px 10px rgba(0,0,0,0.12); }
+  .combo-suggestions.show { display:block; }
+  .combo-item { padding:7px 10px; font-family:'Courier New', monospace; font-size:13px; cursor:pointer; border-bottom:1px solid var(--line); }
+  .combo-item:last-child { border-bottom:none; }
+  .combo-item:hover { background:var(--gold); color:#fff; }
+  .combo-empty { color:#6b5f4a; font-style:italic; cursor:default; }
+  .combo-empty:hover { background:none; color:#6b5f4a; }
+  .scan-row { display:flex; gap:6px; }
+  .scan-row input { flex:1; }
+  .scanbtn { flex-shrink:0; width:38px; height:34px; border:1px solid var(--line); border-radius:6px; background:var(--paper-2); font-size:16px; cursor:pointer; }
+  .scanbtn:hover { background:var(--gold); }
+  .scanner-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:100; align-items:center; justify-content:center; padding:16px; }
+  .scanner-modal.show { display:flex; }
+  .scanner-box { background:var(--paper); border-radius:12px; padding:16px; max-width:420px; width:100%; }
+  .scanner-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-family:Georgia, serif; font-size:15px; }
+  .scanner-header button { background:none; border:none; font-size:22px; cursor:pointer; color:var(--ink); line-height:1; }
+  #scannerReader { border-radius:8px; overflow:hidden; background:#000; min-height:220px; }
+  .ocr-box { max-width:480px; max-height:80vh; overflow-y:auto; }
+  .ocr-progress { display:flex; flex-direction:column; align-items:center; gap:14px; padding:30px 10px; }
+  .spinner { width:36px; height:36px; border:4px solid var(--line); border-top-color:var(--gold); border-radius:50%; animation:spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .ocr-rows { display:flex; flex-direction:column; gap:10px; margin:10px 0; }
+  .ocr-row { display:flex; gap:8px; align-items:flex-start; background:var(--paper-2); border:1px solid var(--line); border-radius:8px; padding:8px; }
+  .ocr-check { padding-top:6px; }
+  .ocr-fields { flex:1; display:flex; flex-direction:column; gap:6px; }
+  .ocr-original { font-family:'Courier New', monospace; font-size:11px; color:#6b5f4a; font-style:italic; }
+  .ocr-fields select, .ocr-fields input { font-family:'Courier New', monospace; font-size:13px; padding:6px; border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink); width:100%; }
+  .backup-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:20px; }
+  .backupbtn { background:var(--paper-2); color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:6px 12px; font-family: Georgia, serif; font-size:12px; cursor:pointer; white-space:nowrap; }
+  .backupbtn:hover { background:var(--gold); color:#fff; border-color:var(--gold); }
+</style>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>Centinela &middot; control de depósito</h1>
+      <p>Qué queda y qué se agotó, a simple vista</p>
+    </div>
+    <div class="export-actions">
+      <button class="exportbtn" id="exportBtn" type="button">📤 Detallado</button>
+      <button class="exportbtn simplebtn" id="exportSimpleBtn" type="button">📤 Simple</button>
+    </div>
+  </div>
+
+  <div class="summary" id="summary">
+    <div class="stat"><b id="s-total">0</b><span>productos</span></div>
+    <div class="stat warn"><b id="s-falta">0</b><span>agotados</span></div>
+    <div class="stat ok"><b id="s-ok">0</b><span>en stock</span></div>
+  </div>
+
+  <div class="backup-row">
+    <span class="hint" style="margin:0;">Copia de seguridad de los datos (para cambiar de link o de celular):</span>
+    <button type="button" class="backupbtn" id="backupExportBtn">💾 Exportar copia</button>
+    <button type="button" class="backupbtn" id="backupImportBtn">📥 Importar copia</button>
+    <input type="file" id="backupFileInput" accept="application/json" style="display:none" />
+  </div>
+
+  <h2 class="section">Agregar producto nuevo al depósito</h2>
+  <form class="add" id="addForm">
+    <div>
+      <label>Producto</label>
+      <input type="text" id="f-name" placeholder="Ej: Refresco Cola" required />
+    </div>
+    <div>
+      <label>Categoría</label>
+      <input type="text" id="f-cat" placeholder="Bebidas, Lácteos..." />
+    </div>
+    <div>
+      <label>Subcategoría (tipo de producto)</label>
+      <input type="text" id="f-tipo" placeholder="Refresco de sabores, Refresco de malta..." />
+    </div>
+    <div>
+      <label>Presentación</label>
+      <input type="text" id="f-envase" placeholder="gabera, bulto, caja, paquete..." required />
+    </div>
+    <div>
+      <label>Medida</label>
+      <input type="text" id="f-medida" placeholder="2L, 1L, 400ml" />
+    </div>
+    <div>
+      <label>Unidades por envase</label>
+      <input type="number" id="f-percase" min="1" step="1" placeholder="24" required />
+    </div>
+    <div>
+      <label>Envases actuales</label>
+      <input type="number" id="f-cases" min="0" step="1" placeholder="0" required />
+    </div>
+    <div>
+      <label>Unidades sueltas</label>
+      <input type="number" id="f-loose" min="0" step="1" placeholder="0" />
+    </div>
+    <div>
+      <label>Código de barras</label>
+      <div class="scan-row">
+        <input type="text" id="f-barcode" placeholder="opcional" />
+        <button type="button" class="scanbtn" id="f-scanbtn" aria-label="Escanear código">📷</button>
+      </div>
+    </div>
+    <button type="submit" class="addbtn">Agregar</button>
+  </form>
+
+  <h2 class="section">Registrar llegada de mercancía</h2>
+  <p class="hint">Elegí un producto ya cargado y sumá lo que llegó hoy al depósito, o escaneá la factura completa.</p>
+  <form class="move" id="restockForm">
+    <div class="combo-wrap">
+      <label>Producto</label>
+      <div class="scan-row">
+        <input type="text" id="r-product-search" placeholder="Escribí para buscar (ej: colita)" autocomplete="off" />
+        <button type="button" class="scanbtn" id="r-scanbtn" aria-label="Escanear código">📷</button>
+        <button type="button" class="scanbtn" id="r-invoicebtn" aria-label="Escanear factura">📄</button>
+        <input type="file" id="r-invoice-input" accept="image/*" capture="environment" style="display:none" />
+      </div>
+      <input type="hidden" id="r-product-id" />
+      <div class="combo-suggestions" id="r-product-suggestions"></div>
+    </div>
+    <div>
+      <label>Cantidad de <span id="r-envase-label">envases</span> que llegaron</label>
+      <input type="number" id="r-cases" min="0" step="1" placeholder="0" />
+    </div>
+    <div>
+      <label>Unidades sueltas que llegaron</label>
+      <input type="number" id="r-loose" min="0" step="1" placeholder="0" />
+    </div>
+    <button type="submit" class="addbtn">Sumar al stock</button>
+  </form>
+
+  <h2 class="section">Registrar salida hacia el estante</h2>
+  <p class="hint">Elegí un producto y poné cuántas unidades sacaste del depósito (las contás vos, tal cual).</p>
+  <form class="moveout" id="outForm">
+    <div class="combo-wrap">
+      <label>Producto</label>
+      <div class="scan-row">
+        <input type="text" id="o-product-search" placeholder="Escribí para buscar (ej: colita)" autocomplete="off" />
+        <button type="button" class="scanbtn" id="o-scanbtn" aria-label="Escanear código">📷</button>
+      </div>
+      <input type="hidden" id="o-product-id" />
+      <div class="combo-suggestions" id="o-product-suggestions"></div>
+    </div>
+    <div>
+      <label>Unidades que salen</label>
+      <input type="number" id="o-units" min="0" step="1" placeholder="0" />
+    </div>
+    <button type="submit" class="addbtn outbtn">Restar del stock</button>
+  </form>
+
+  <div class="list" id="list">
+    <div class="loading">Cargando inventario…</div>
+  </div>
+</div>
+
+<div class="scanner-modal" id="scannerModal">
+  <div class="scanner-box">
+    <div class="scanner-header">
+      <span>Escaneá el código de barras</span>
+      <button type="button" id="scannerClose" aria-label="Cerrar">&times;</button>
+    </div>
+    <div id="scannerReader"></div>
+    <p class="hint" id="scannerStatus">Apuntá la cámara al código…</p>
+  </div>
+</div>
+
+<div class="scanner-modal" id="ocrModal">
+  <div class="scanner-box ocr-box">
+    <div class="scanner-header">
+      <span id="ocrTitle">Leyendo factura…</span>
+      <button type="button" id="ocrClose" aria-label="Cerrar">&times;</button>
+    </div>
+    <div id="ocrBody"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script>
+(function(){
+  const STORAGE_KEY = 'deposito-items';
+  let items = [];
+  let loaded = false;
+
+  const listEl = document.getElementById('list');
+  const form = document.getElementById('addForm');
+  const restockForm = document.getElementById('restockForm');
+  const restockSearch = document.getElementById('r-product-search');
+  const restockId = document.getElementById('r-product-id');
+  const restockSuggestions = document.getElementById('r-product-suggestions');
+  const restockEnvaseLabel = document.getElementById('r-envase-label');
+  const outForm = document.getElementById('outForm');
+  const outSearch = document.getElementById('o-product-search');
+  const outId = document.getElementById('o-product-id');
+  const outSuggestions = document.getElementById('o-product-suggestions');
+  const exportBtn = document.getElementById('exportBtn');
+  const exportSimpleBtn = document.getElementById('exportSimpleBtn');
+
+  function esc(s){
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function load(){
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      items = raw ? JSON.parse(raw) : [];
+    } catch(e){
+      items = [];
+    }
+    loaded = true;
+    render();
+  }
+
+  function save(){
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    } catch(e){
+      console.error('No se pudo guardar', e);
+    }
+  }
+
+  // --- Copia de seguridad: descarga/carga todos los datos como archivo .json ---
+  // Sirve para mover los datos cuando cambiás de link (ej: de local a GitHub Pages)
+  // o de celular, ya que localStorage queda atado a cada dirección web puntual.
+  document.getElementById('backupExportBtn').addEventListener('click', () => {
+    if (items.length === 0) {
+      alert('Todavía no hay productos cargados para hacer una copia.');
+      return;
+    }
+    const blob = new Blob([JSON.stringify(items, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const fecha = new Date().toISOString().slice(0, 10);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `centinela-backup-${fecha}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('backupImportBtn').addEventListener('click', () => {
+    document.getElementById('backupFileInput').click();
+  });
+
+  document.getElementById('backupFileInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result);
+        if (!Array.isArray(parsed)) throw new Error('Formato inválido');
+        const confirmMsg = items.length > 0
+          ? `Este archivo trae ${parsed.length} productos. Esto va a REEMPLAZAR los ${items.length} que tenés cargados ahora acá. ¿Continuar?`
+          : `Se van a importar ${parsed.length} productos. ¿Continuar?`;
+        if (!confirm(confirmMsg)) return;
+        items = parsed;
+        save();
+        render();
+        alert('Copia importada correctamente.');
+      } catch(err) {
+        alert('Ese archivo no es una copia de seguridad válida de Centinela.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  // Si el nombre empieza con la misma palabra que el tipo de producto (ej: nombre
+  // "Aceite La Comadre", tipo "Aceite"), la quita para no repetirla en el export.
+  function quitarTipoDelNombre(name, tipo){
+    const n = (name || '').trim();
+    const t = (tipo || '').trim();
+    if (!t) return n;
+    if (n.toLowerCase().startsWith(t.toLowerCase())) {
+      const resto = n.slice(t.length).trim();
+      return resto || n;
+    }
+    return n;
+  }
+
+  function normalizarTipo(s){
+    let t = (s || '').trim().toLowerCase();
+    if (t.length > 3 && t.endsWith('s')) t = t.slice(0, -1); // "jugos" -> "jugo"
+    return t;
+  }
+
+  function grupoKey(item){
+    if (item.tipoProducto && item.tipoProducto.trim()) return normalizarTipo(item.tipoProducto);
+    return normalizarTipo((item.name || '').trim().split(/\s+/)[0]);
+  }
+
+  // Agrupa por categoría (ignorando mayúsculas y plural/singular, ej: "Bebida" y
+  // "Bebidas" se tratan igual), y dentro de cada categoría por subcategoría
+  // (tipo de producto), ordenando cada subcategoría de menor a mayor medida.
+  // Devuelve: [{ label, subcategorias: [{ label, items }] }]
+  // La usan tanto la lista en pantalla como el export, para que se vean igual.
+  function organizarPorCategoria(list){
+    const catGroups = {};
+    list.forEach(i => {
+      const catRaw = (i.categoria || 'Sin categoría').trim() || 'Sin categoría';
+      const key = normalizarTipo(catRaw);
+      if (!catGroups[key]) catGroups[key] = { label: catRaw, items: [] };
+      catGroups[key].items.push(i);
+    });
+    const catKeys = Object.keys(catGroups).sort((a,b) =>
+      catGroups[a].label.localeCompare(catGroups[b].label, 'es'));
+
+    return catKeys.map(catKey => {
+      const catLabel = catGroups[catKey].label;
+      const subGroups = {};
+      catGroups[catKey].items.forEach(i => {
+        const subRaw = (i.tipoProducto && i.tipoProducto.trim())
+          ? i.tipoProducto.trim()
+          : (i.name || '').trim().split(/\s+/)[0] || 'Otros';
+        const subKey = normalizarTipo(subRaw);
+        if (!subGroups[subKey]) subGroups[subKey] = { label: subRaw, items: [] };
+        subGroups[subKey].items.push(i);
+      });
+      const subKeys = Object.keys(subGroups).sort((a,b) =>
+        subGroups[a].label.localeCompare(subGroups[b].label, 'es'));
+      const subcategorias = subKeys.map(subKey => {
+        const items = [...subGroups[subKey].items].sort((a,b) =>
+          parseMedidaValue(a.medida) - parseMedidaValue(b.medida));
+        return { label: subGroups[subKey].label, items };
+      });
+      return { label: catLabel, subcategorias };
+    });
+  }
+
+  function totalUnits(item){
+    return (item.cases * item.perCase) + item.loose;
+  }
+
+  // Convierte una medida de texto (400ml, 1L, 1.5 litros, 1kg...) a un valor
+  // numérico comparable, para poder ordenar de menor a mayor dentro de una categoría.
+  function parseMedidaValue(medida){
+    if (!medida) return Infinity;
+    const s = medida.toLowerCase().replace(',', '.');
+    const m = s.match(/([\d.]+)\s*(ml|mililitros|litros|litro|lts|lt|l|kilos|kilo|kg|gramos|g)?/);
+    if (!m || isNaN(parseFloat(m[1]))) return Infinity;
+    let num = parseFloat(m[1]);
+    const unit = m[2] || '';
+    if (unit.startsWith('l')) {
+      num *= 1000; // litros -> escala de ml
+    } else if (unit.startsWith('kg') || unit.startsWith('kilo')) {
+      num *= 1000; // kg -> escala de g
+    } else if (!unit && num < 10) {
+      // Sin unidad y número chico (ej: "1.5", "2"): asumimos litros/kilos,
+      // que es la forma más común de escribirlo sin la letra.
+      num *= 1000;
+    }
+    return num;
+  }
+
+  function updateEnvaseLabel(){
+    const item = items.find(i => i.id === restockId.value);
+    restockEnvaseLabel.textContent = item && item.envase ? item.envase + 's' : 'envases';
+  }
+
+  function quitarAcentos(s){
+    return (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+
+  // Distancia de Levenshtein: cuántas letras hay que cambiar para pasar
+  // de un texto a otro. La usamos para tolerar errores de tipeo o de OCR
+  // (ej: "Chinoto" vs "Chinotto").
+  function levenshtein(a, b){
+    const m = a.length, n = b.length;
+    if (m === 0) return n;
+    if (n === 0) return m;
+    const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+    for (let i = 0; i <= m; i++) dp[i][0] = i;
+    for (let j = 0; j <= n; j++) dp[0][j] = j;
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        dp[i][j] = a[i - 1] === b[j - 1]
+          ? dp[i - 1][j - 1]
+          : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+      }
+    }
+    return dp[m][n];
+  }
+
+  function similitud(a, b){
+    if (!a || !b) return 0;
+    const distancia = levenshtein(a, b);
+    const maxLen = Math.max(a.length, b.length) || 1;
+    return 1 - distancia / maxLen;
+  }
+
+  // Busca, entre los productos ya cargados, el que más se parezca a un texto
+  // suelto (ej: sacado de una factura o escrito con errores). Devuelve el
+  // producto si la similitud supera el umbral, o null si ninguno se parece.
+  function mejorCoincidencia(texto){
+    const q = quitarAcentos((texto || '').toLowerCase().trim());
+    if (q.length < 3) return null;
+    let mejor = null, mejorScore = 0;
+    items.forEach(item => {
+      const nombre = quitarAcentos(item.name.toLowerCase());
+      const nombreConTipo = quitarAcentos(`${item.tipoProducto || ''} ${item.name}`.toLowerCase());
+      const score = Math.max(similitud(q, nombre), similitud(q, nombreConTipo));
+      if (score > mejorScore) { mejorScore = score; mejor = item; }
+    });
+    return mejorScore >= 0.5 ? mejor : null;
+  }
+
+  function etiquetaProducto(item){
+    const tipo = item.tipoProducto ? `${item.tipoProducto}: ` : '';
+    const nombre = quitarTipoDelNombre(item.name, item.tipoProducto);
+    const medida = item.medida ? ' · ' + item.medida : '';
+    return `${tipo}${nombre}${medida}`;
+  }
+
+  // Convierte el input de texto + input oculto en un buscador con sugerencias:
+  // escribís (ej: "colita") y aparecen los productos que matchean por nombre,
+  // tipo, medida o categoría; al tocar uno, queda seleccionado. Si no hay
+  // coincidencia exacta, cae a una búsqueda "parecida" por si hay un error de tipeo.
+  function setupCombo(searchInput, hiddenInput, suggestionsEl, onSelect){
+    function mostrarSugerencias(query){
+      const q = quitarAcentos(query.toLowerCase().trim());
+      let matches = items.filter(i => {
+        const haystack = quitarAcentos(`${i.tipoProducto || ''} ${i.name} ${i.medida || ''} ${i.categoria || ''}`.toLowerCase());
+        return q === '' || haystack.includes(q);
+      });
+      if (matches.length === 0 && q.length >= 3) {
+        matches = items
+          .map(i => ({ item: i, score: similitud(q, quitarAcentos(i.name.toLowerCase())) }))
+          .filter(x => x.score >= 0.5)
+          .sort((a, b) => b.score - a.score)
+          .map(x => x.item);
+      }
+      matches = matches.slice(0, 40);
+      suggestionsEl.innerHTML = matches.length
+        ? matches.map(i => `<div class="combo-item" data-id="${i.id}">${esc(etiquetaProducto(i))}</div>`).join('')
+        : '<div class="combo-item combo-empty">Sin resultados</div>';
+      suggestionsEl.classList.add('show');
+    }
+    function ocultarSugerencias(){
+      suggestionsEl.classList.remove('show');
+    }
+    searchInput.addEventListener('focus', () => mostrarSugerencias(searchInput.value));
+    searchInput.addEventListener('input', () => {
+      hiddenInput.value = '';
+      mostrarSugerencias(searchInput.value);
+    });
+    // mousedown (no click) para que dispare antes del blur del input y no se cierre solo.
+    suggestionsEl.addEventListener('mousedown', (e) => {
+      const el = e.target.closest('.combo-item[data-id]');
+      if (!el) return;
+      const item = items.find(i => i.id === el.dataset.id);
+      if (!item) return;
+      hiddenInput.value = item.id;
+      searchInput.value = etiquetaProducto(item);
+      ocultarSugerencias();
+      if (onSelect) onSelect();
+    });
+    document.addEventListener('click', (e) => {
+      if (e.target !== searchInput && !suggestionsEl.contains(e.target)) ocultarSugerencias();
+    });
+  }
+
+  setupCombo(restockSearch, restockId, restockSuggestions, updateEnvaseLabel);
+  setupCombo(outSearch, outId, outSuggestions);
+
+  // --- Escáner de código de barras (100% en el navegador, sin servidor) ---
+  const scannerModal = document.getElementById('scannerModal');
+  const scannerStatus = document.getElementById('scannerStatus');
+  let html5QrCode = null;
+  let scannerCallback = null;
+
+  function abrirEscaner(onDecoded){
+    if (typeof Html5Qrcode === 'undefined') {
+      alert('No se pudo cargar la cámara. Revisá tu conexión e intentá de nuevo.');
+      return;
+    }
+    scannerCallback = onDecoded;
+    scannerStatus.textContent = 'Apuntá la cámara al código…';
+    scannerModal.classList.add('show');
+    html5QrCode = new Html5Qrcode('scannerReader');
+    html5QrCode.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: { width: 230, height: 140 } },
+      (decodedText) => {
+        cerrarEscaner();
+        if (scannerCallback) scannerCallback(decodedText.trim());
+      },
+      () => { /* no se detectó nada en este frame, seguir intentando */ }
+    ).catch((err) => {
+      scannerStatus.textContent = 'No se pudo abrir la cámara. Revisá los permisos.';
+      console.error(err);
+    });
+  }
+
+  function cerrarEscaner(){
+    scannerModal.classList.remove('show');
+    if (html5QrCode) {
+      html5QrCode.stop().then(() => html5QrCode.clear()).catch(() => {});
+      html5QrCode = null;
+    }
+  }
+  document.getElementById('scannerClose').addEventListener('click', cerrarEscaner);
+
+  // Botón de la cámara en "Agregar producto nuevo": solo llena el campo del código.
+  document.getElementById('f-scanbtn').addEventListener('click', () => {
+    abrirEscaner((codigo) => {
+      document.getElementById('f-barcode').value = codigo;
+    });
+  });
+
+  // Botones de la cámara en "llegada" y "salida": buscan el producto por su código
+  // y lo seleccionan solos, igual que si lo hubieras elegido del buscador.
+  function escanearYSeleccionar(hiddenInput, searchInput, onSelect){
+    abrirEscaner((codigo) => {
+      const item = items.find(i => i.codigoBarras && i.codigoBarras === codigo);
+      if (!item) {
+        alert('Ese código no está guardado en ningún producto todavía. Agregalo desde "Agregar producto nuevo".');
+        return;
+      }
+      hiddenInput.value = item.id;
+      searchInput.value = etiquetaProducto(item);
+      if (onSelect) onSelect();
+    });
+  }
+  document.getElementById('r-scanbtn').addEventListener('click', () => {
+    escanearYSeleccionar(restockId, restockSearch, updateEnvaseLabel);
+  });
+  document.getElementById('o-scanbtn').addEventListener('click', () => {
+    escanearYSeleccionar(outId, outSearch);
+  });
+
+  // --- Lectura de factura por foto (OCR con Tesseract.js, 100% en el celular) ---
+  const ocrModal = document.getElementById('ocrModal');
+  const ocrTitle = document.getElementById('ocrTitle');
+  const ocrBody = document.getElementById('ocrBody');
+  let ocrWorker = null;
+
+  // Achica la foto (máx. 1400px de ancho) y la pasa a escala de grises con más
+  // contraste antes de mandarla al OCR: procesa mucho más rápido y gasta
+  // menos batería que mandarle la foto completa de la cámara.
+  function preprocesarImagen(file){
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxW = 1400;
+        const scale = Math.min(1, maxW / img.width);
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        const imgData = ctx.getImageData(0, 0, w, h);
+        const d = imgData.data;
+        const contraste = 1.3;
+        for (let i = 0; i < d.length; i += 4) {
+          const gris = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+          let v = (gris - 128) * contraste + 128;
+          v = Math.max(0, Math.min(255, v));
+          d[i] = d[i + 1] = d[i + 2] = v;
+        }
+        ctx.putImageData(imgData, 0, 0);
+        canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.9);
+      };
+      img.onerror = reject;
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
+  async function getOcrWorker(){
+    if (ocrWorker) return ocrWorker;
+    // tessdata_fast: paquete de idioma liviano (2-3MB en vez de 15MB), pensado
+    // para que cargue rápido en un celular común.
+    ocrWorker = await Tesseract.createWorker('spa', 1, {
+      langPath: 'https://cdn.jsdelivr.net/gh/tesseract-ocr/tessdata_fast@main/',
+      logger: (m) => {
+        if (m.status === 'recognizing text' && typeof m.progress === 'number') {
+          ocrTitle.textContent = `Leyendo factura… ${Math.round(m.progress * 100)}%`;
+        }
+      }
+    });
+    return ocrWorker;
+  }
+
+  function mostrarModalOcr(texto){
+    ocrModal.classList.add('show');
+    ocrTitle.textContent = texto;
+    ocrBody.innerHTML = '<div class="ocr-progress"><div class="spinner"></div><span class="hint" style="margin:0;">Esto puede tardar unos segundos…</span></div>';
+  }
+  function cerrarOcrModal(){
+    ocrModal.classList.remove('show');
+  }
+  document.getElementById('ocrClose').addEventListener('click', cerrarOcrModal);
+
+  function procesarTextoFactura(texto){
+    const lineas = texto.split('\n').map(l => l.trim()).filter(l => l.length > 2);
+    const detecciones = lineas.map(linea => {
+      const m = linea.match(/(\d+)/);
+      const cantidad = m ? parseInt(m[1], 10) : 1;
+      const nombreDetectado = linea
+        .replace(/\d+/, '')
+        .replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ ]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const sugerencia = mejorCoincidencia(nombreDetectado);
+      return { textoOriginal: linea, nombreDetectado, cantidad, sugerenciaId: sugerencia ? sugerencia.id : '' };
+    }).filter(d => d.nombreDetectado.length > 2);
+    mostrarRevisionFactura(detecciones);
+  }
+
+  function mostrarRevisionFactura(detecciones){
+    ocrTitle.textContent = 'Revisá lo que se detectó';
+    if (detecciones.length === 0) {
+      ocrBody.innerHTML = '<p class="hint">No se detectó texto útil en la foto. Probá con mejor luz, más cerca y sin inclinar la factura.</p>';
+      return;
+    }
+    const opciones = items.map(i => `<option value="${i.id}">${esc(etiquetaProducto(i))}</option>`).join('');
+    ocrBody.innerHTML = `
+      <p class="hint">Revisá cada línea, corregí el producto o la cantidad si hace falta, y confirmá. Se suman como unidades sueltas al stock.</p>
+      <div class="ocr-rows">
+        ${detecciones.map((d, idx) => `
+          <div class="ocr-row" data-idx="${idx}">
+            <label class="ocr-check"><input type="checkbox" checked data-role="incluir" /></label>
+            <div class="ocr-fields">
+              <div class="ocr-original">"${esc(d.textoOriginal)}"</div>
+              <select data-role="producto">
+                <option value="">-- No coincide, elegir --</option>
+                ${opciones}
+              </select>
+              <input type="number" min="0" step="1" value="${d.cantidad}" data-role="cantidad" />
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <button type="button" class="addbtn" id="ocrAplicarBtn">Aplicar al stock</button>
+    `;
+    detecciones.forEach((d, idx) => {
+      if (!d.sugerenciaId) return;
+      const select = ocrBody.querySelector(`.ocr-row[data-idx="${idx}"] select`);
+      if (select) select.value = d.sugerenciaId;
+    });
+    document.getElementById('ocrAplicarBtn').addEventListener('click', () => {
+      let aplicados = 0;
+      ocrBody.querySelectorAll('.ocr-row').forEach(row => {
+        const incluir = row.querySelector('[data-role="incluir"]').checked;
+        const id = row.querySelector('[data-role="producto"]').value;
+        const cantidad = parseInt(row.querySelector('[data-role="cantidad"]').value, 10) || 0;
+        if (!incluir || !id || cantidad <= 0) return;
+        const item = items.find(i => i.id === id);
+        if (!item) return;
+        item.loose += cantidad;
+        if (item.perCase > 0 && item.loose >= item.perCase) {
+          const extra = Math.floor(item.loose / item.perCase);
+          item.cases += extra;
+          item.loose = item.loose % item.perCase;
+        }
+        aplicados++;
+      });
+      save();
+      render();
+      cerrarOcrModal();
+      alert(aplicados > 0 ? `Se sumaron ${aplicados} producto(s) al stock.` : 'No se aplicó ningún producto (revisá que hayas elegido un producto para cada línea marcada).');
+    });
+  }
+
+  async function escanearFactura(file){
+    try {
+      mostrarModalOcr('Preparando imagen…');
+      const blob = await preprocesarImagen(file);
+      mostrarModalOcr('Leyendo factura… 0%');
+      const worker = await getOcrWorker();
+      const { data } = await worker.recognize(blob);
+      procesarTextoFactura(data.text || '');
+    } catch (err) {
+      console.error(err);
+      cerrarOcrModal();
+      alert('No se pudo leer la factura. Probá de nuevo con mejor luz o más cerca del texto.');
+    }
+  }
+
+  document.getElementById('r-invoicebtn').addEventListener('click', () => {
+    document.getElementById('r-invoice-input').click();
+  });
+  document.getElementById('r-invoice-input').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    escanearFactura(file);
+  });
+
+  function render(){
+    const total = items.length;
+    const agotados = items.filter(i => totalUnits(i) <= 0);
+    document.getElementById('s-total').textContent = total;
+    document.getElementById('s-falta').textContent = agotados.length;
+    document.getElementById('s-ok').textContent = total - agotados.length;
+
+    updateEnvaseLabel();
+
+    if (!loaded) {
+      listEl.innerHTML = '<div class="loading">Cargando inventario…</div>';
+      return;
+    }
+    if (total === 0) {
+      listEl.innerHTML = '<div class="empty">Todavía no cargaste productos. Agregá el primero arriba.</div>';
+      return;
+    }
+
+    const categorias = organizarPorCategoria(items);
+
+    listEl.innerHTML = categorias.map(cat => {
+      const subHtml = cat.subcategorias.map(sub => {
+        const rowsHtml = sub.items.map(item => {
+          const cur = totalUnits(item);
+          const isMissing = cur <= 0;
+          const medida = item.medida ? ` &middot; ${esc(item.medida)}` : '';
+          const tagText = cur <= 0 ? 'Agotado' : `Quedan ${cur} un.`;
+          return `<div class="row ${isMissing ? 'missing' : ''}">
+            <div class="rowname">
+              <b>${esc(item.name)}${medida}</b>
+              <span>${item.cases} ${esc(item.envase || 'envase')}(s) &times; ${item.perCase} + ${item.loose} sueltas</span>
+            </div>
+            <div class="tag ${isMissing ? 'warn' : 'ok'}">${tagText}</div>
+            <button class="qtyedit" aria-label="Corregir cantidad de ${esc(item.name)}" data-id="${item.id}">🔢</button>
+            <button class="edit" aria-label="Editar producto ${esc(item.name)}" data-id="${item.id}">✎</button>
+            <button class="del" aria-label="Eliminar ${esc(item.name)}" data-id="${item.id}">&times;</button>
+          </div>`;
+        }).join('');
+        return `<h4 class="subcat-title">${esc(sub.label)}</h4>${rowsHtml}`;
+      }).join('');
+      return `<div class="cat-section"><h3 class="cat-title">${esc(cat.label)}</h3>${subHtml}</div>`;
+    }).join('');
+
+    listEl.querySelectorAll('.qtyedit').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const item = items.find(i => i.id === btn.dataset.id);
+        if (!item) return;
+        const envaseWord = item.envase || 'envase';
+        const nuevasCajas = prompt(`Cantidad de ${envaseWord}s actuales:`, item.cases);
+        if (nuevasCajas !== null && nuevasCajas.trim() !== '' && !isNaN(parseInt(nuevasCajas, 10))) {
+          item.cases = Math.max(0, parseInt(nuevasCajas, 10));
+        }
+        const nuevasSueltas = prompt('Unidades sueltas actuales:', item.loose);
+        if (nuevasSueltas !== null && nuevasSueltas.trim() !== '' && !isNaN(parseInt(nuevasSueltas, 10))) {
+          item.loose = Math.max(0, parseInt(nuevasSueltas, 10));
+        }
+        save();
+        render();
+      });
+    });
+
+    listEl.querySelectorAll('.edit').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const item = items.find(i => i.id === btn.dataset.id);
+        if (!item) return;
+        const nuevoNombre = prompt('Nombre del producto:', item.name);
+        if (nuevoNombre !== null && nuevoNombre.trim()) {
+          item.name = nuevoNombre.trim();
+        }
+        const nuevaCategoria = prompt('Categoría (ej: Bebidas carbonatadas sin alcohol):', item.categoria || '');
+        if (nuevaCategoria !== null && nuevaCategoria.trim()) {
+          item.categoria = nuevaCategoria.trim();
+        }
+        const nuevoTipo = prompt('Subcategoría / tipo de producto (ej: Refresco de sabores, Refresco de malta):', item.tipoProducto || '');
+        if (nuevoTipo !== null && nuevoTipo.trim()) {
+          item.tipoProducto = nuevoTipo.trim();
+        }
+        const nuevaPresentacion = prompt('Presentación (gabera, bulto, caja, paquete...):', item.envase || '');
+        if (nuevaPresentacion !== null && nuevaPresentacion.trim()) {
+          item.envase = nuevaPresentacion.trim();
+        }
+        const nuevaMedida = prompt('Medida (2L, 1L, 400ml...):', item.medida || '');
+        if (nuevaMedida !== null && nuevaMedida.trim()) {
+          item.medida = nuevaMedida.trim();
+        }
+        const nuevoCodigo = prompt('Código de barras (dejar vacío si no tiene):', item.codigoBarras || '');
+        if (nuevoCodigo !== null) {
+          item.codigoBarras = nuevoCodigo.trim();
+        }
+        save();
+        render();
+      });
+    });
+
+    listEl.querySelectorAll('.del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        items = items.filter(i => i.id !== btn.dataset.id);
+        save();
+        render();
+      });
+    });
+  }
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = document.getElementById('f-name').value.trim();
+    const categoria = document.getElementById('f-cat').value.trim();
+    const tipoProducto = document.getElementById('f-tipo').value.trim();
+    const envase = document.getElementById('f-envase').value.trim() || 'envase';
+    const medida = document.getElementById('f-medida').value.trim();
+    const perCase = parseInt(document.getElementById('f-percase').value, 10) || 1;
+    const cases = parseInt(document.getElementById('f-cases').value, 10) || 0;
+    const loose = parseInt(document.getElementById('f-loose').value, 10) || 0;
+    const codigoBarras = document.getElementById('f-barcode').value.trim();
+    if (!name) return;
+    items.push({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+      name, categoria, tipoProducto, envase, medida, perCase, cases, loose, codigoBarras
+    });
+    save();
+    render();
+    form.reset();
+    document.getElementById('f-name').focus();
+  });
+
+  restockForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const id = restockId.value;
+    if (!id) { alert('Buscá y seleccioná un producto de la lista antes de guardar.'); return; }
+    const item = items.find(i => i.id === id);
+    if (!item) return;
+    const addCases = parseInt(document.getElementById('r-cases').value, 10) || 0;
+    const addLoose = parseInt(document.getElementById('r-loose').value, 10) || 0;
+    item.cases += addCases;
+    item.loose += addLoose;
+    if (item.perCase > 0 && item.loose >= item.perCase) {
+      const extraCases = Math.floor(item.loose / item.perCase);
+      item.cases += extraCases;
+      item.loose = item.loose % item.perCase;
+    }
+    save();
+    render();
+    document.getElementById('r-cases').value = '';
+    document.getElementById('r-loose').value = '';
+  });
+
+  outForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const id = outId.value;
+    if (!id) { alert('Buscá y seleccioná un producto de la lista antes de guardar.'); return; }
+    const item = items.find(i => i.id === id);
+    if (!item) return;
+    const outUnits = parseInt(document.getElementById('o-units').value, 10) || 0;
+    const perCase = item.perCase || 1;
+    const newTotal = Math.max(0, totalUnits(item) - outUnits);
+    item.cases = Math.floor(newTotal / perCase);
+    item.loose = newTotal % perCase;
+    save();
+    render();
+    document.getElementById('o-units').value = '';
+  });
+
+  function pluralizar(cantidad, palabra){
+    if (cantidad === 1) return palabra;
+    return palabra.endsWith('s') ? palabra : palabra + 's';
+  }
+
+  function buildEstadoText(modo){
+    if (items.length === 0) return null;
+
+    const categorias = organizarPorCategoria(items);
+
+    const fecha = new Date().toLocaleDateString('es-VE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const titulo = modo === 'simple' ? '📋 Estado del depósito (simple)' : '📋 Estado del depósito';
+    let text = `${titulo} – ${fecha}\n\n`;
+    categorias.forEach(cat => {
+      text += `*${cat.label.toUpperCase()}*\n`;
+      cat.subcategorias.forEach(sub => {
+        text += `_${sub.label}_\n`;
+        sub.items.forEach(i => {
+          const cur = totalUnits(i);
+          const medida = i.medida ? ` (${i.medida})` : '';
+          let linea;
+          if (cur <= 0) {
+            linea = 'Agotado';
+          } else if (modo === 'simple') {
+            const envaseWord = pluralizar(i.cases, i.envase || 'envase');
+            const sueltaWord = i.loose === 1 ? 'suelta' : 'sueltas';
+            linea = `Quedan ${i.cases} ${envaseWord} y ${i.loose} ${sueltaWord}`;
+          } else {
+            linea = `Quedan ${i.cases} ${i.envase || 'envase'}s x ${i.perCase} + ${i.loose} = ${cur} unidades`;
+          }
+          const nombreMostrado = quitarTipoDelNombre(i.name, i.tipoProducto);
+          text += `- ${nombreMostrado}${medida}: ${linea}\n`;
+        });
+      });
+      text += `\n`;
+    });
+    return { text, fecha };
+  }
+
+  function openExportTab(modo){
+    const result = buildEstadoText(modo);
+    if (!result) {
+      alert('Todavía no cargaste productos en el depósito.');
+      return;
+    }
+    const { text, fecha } = result;
+    const win = window.open('', '_blank');
+    if (!win) {
+      alert('El navegador bloqueó la ventana emergente. Permitila para poder exportar.');
+      return;
+    }
+    const waLink = 'https://wa.me/?text=' + encodeURIComponent(text);
+    const tituloVentana = modo === 'simple' ? 'Estado del depósito (simple)' : 'Estado del depósito';
+    win.document.write(`<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>${esc(tituloVentana)} ${esc(fecha)}</title>
+<style>
+  body { font-family: Georgia, serif; background:#EFE8D8; color:#2B2620; padding:24px; max-width:600px; margin:0 auto; }
+  h1 { font-size:19px; border-bottom:2px solid #2B2620; padding-bottom:10px; }
+  pre { white-space:pre-wrap; word-wrap:break-word; background:#F7F2E6; border:1px solid #D9CFB6; border-radius:8px; padding:16px; font-family:'Courier New', monospace; font-size:13px; line-height:1.5; }
+  .actions { display:flex; gap:10px; margin-top:14px; flex-wrap:wrap; }
+  button, a.btn { font-family: Georgia, serif; font-size:14px; padding:10px 16px; border-radius:8px; border:none; cursor:pointer; text-decoration:none; display:inline-block; }
+  .copy { background:#2B2620; color:#F7F2E6; }
+  .wa { background:#1f7a4d; color:#fff; }
+</style>
+</head>
+<body>
+  <h1>📋 ${esc(tituloVentana)} – ${esc(fecha)}</h1>
+  <pre id="txt">${esc(text)}</pre>
+  <div class="actions">
+    <button class="copy" id="copyBtn">Copiar texto</button>
+    <a class="btn wa" href="${waLink}" target="_blank" rel="noopener">Enviar por WhatsApp</a>
+  </div>
+  <script>
+    document.getElementById('copyBtn').addEventListener('click', function(){
+      navigator.clipboard.writeText(document.getElementById('txt').textContent).then(function(){
+        this.textContent = '¡Copiado!';
+        setTimeout(() => { this.textContent = 'Copiar texto'; }, 1500);
+      }.bind(this));
+    });
+  <\/script>
+</body>
+</html>`);
+    win.document.close();
+  }
+
+  exportBtn.addEventListener('click', () => openExportTab('detallado'));
+  exportSimpleBtn.addEventListener('click', () => openExportTab('simple'));
+
+  load();
+})();
+</script>
