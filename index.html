@@ -633,12 +633,15 @@
 
   async function getOcrWorker(){
     if (ocrWorker) return ocrWorker;
-    // tessdata_fast: paquete de idioma liviano (2-3MB en vez de 15MB), pensado
-    // para que cargue rápido en un celular común.
+    // Usamos la CDN oficial del propio Tesseract.js para el paquete de idioma
+    // (más confiable que apuntar directo a GitHub, que a veces no entrega
+    // el archivo bien y deja el proceso trabado en 0%).
     ocrWorker = await Tesseract.createWorker('spa', 1, {
-      langPath: 'https://cdn.jsdelivr.net/gh/tesseract-ocr/tessdata_fast@main/',
+      langPath: 'https://tessdata.projectnaptha.com/4.0.0',
       logger: (m) => {
-        if (m.status === 'recognizing text' && typeof m.progress === 'number') {
+        if (m.status === 'loading language traineddata') {
+          ocrTitle.textContent = 'Descargando paquete de idioma (solo la primera vez)…';
+        } else if (m.status === 'recognizing text' && typeof m.progress === 'number') {
           ocrTitle.textContent = `Leyendo factura… ${Math.round(m.progress * 100)}%`;
         }
       }
@@ -733,12 +736,15 @@
       const blob = await preprocesarImagen(file);
       mostrarModalOcr('Leyendo factura… 0%');
       const worker = await getOcrWorker();
-      const { data } = await worker.recognize(blob);
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('timeout')), 45000)
+      );
+      const { data } = await Promise.race([worker.recognize(blob), timeout]);
       procesarTextoFactura(data.text || '');
     } catch (err) {
       console.error(err);
       cerrarOcrModal();
-      alert('No se pudo leer la factura. Probá de nuevo con mejor luz o más cerca del texto.');
+      alert('No se pudo leer la factura (tardó demasiado o hubo un error). Revisá tu conexión a internet y probá de nuevo.');
     }
   }
 
