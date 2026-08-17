@@ -93,6 +93,16 @@
   .ocr-fields { flex:1; display:flex; flex-direction:column; gap:6px; }
   .ocr-original { font-family:'Courier New', monospace; font-size:11px; color:#6b5f4a; font-style:italic; }
   .ocr-fields select, .ocr-fields input { font-family:'Courier New', monospace; font-size:13px; padding:6px; border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink); width:100%; }
+  .fastscanbtn { display:block; width:100%; margin-bottom:12px; background:#2E6E8C; }
+  .fastscanbtn:hover { background:#25576f; }
+  #fastScanReader { border-radius:8px; overflow:hidden; background:#000; min-height:200px; }
+  .fastscan-list { max-height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; margin:10px 0; }
+  .fastscan-row { display:flex; align-items:center; gap:8px; background:var(--paper-2); border:1px solid var(--line); border-radius:6px; padding:6px 10px; }
+  .fastscan-name { flex:1; font-family:'Courier New', monospace; font-size:13px; }
+  .fastscan-qty { font-family:'Courier New', monospace; font-size:12px; font-weight:bold; color:var(--ok); white-space:nowrap; }
+  .fastscan-summary { font-size:13px; font-weight:bold; text-align:center; margin:6px 0; }
+  .fastscan-actions { display:flex; gap:8px; }
+  .fastscan-actions .addbtn { flex:1; }
   .backup-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:20px; }
   .backupbtn { background:var(--paper-2); color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:6px 12px; font-family: Georgia, serif; font-size:12px; cursor:pointer; white-space:nowrap; }
   .backupbtn:hover { background:var(--gold); color:#fff; border-color:var(--gold); }
@@ -192,7 +202,8 @@
   </form>
 
   <h2 class="section">Registrar salida hacia el estante</h2>
-  <p class="hint">Elegí un producto y poné cuántas unidades sacaste del depósito (las contás vos, tal cual).</p>
+  <p class="hint">Elegí un producto y poné cuántas unidades sacaste del depósito (las contás vos, tal cual), o usá el modo rápido para ir escaneando código tras código sin parar.</p>
+  <button type="button" class="addbtn outbtn fastscanbtn" id="fastScanOpenBtn">⚡ Modo escaneo rápido (pasillero)</button>
   <form class="moveout" id="outForm">
     <div class="combo-wrap">
       <label>Producto</label>
@@ -233,6 +244,23 @@
       <button type="button" id="ocrClose" aria-label="Cerrar">&times;</button>
     </div>
     <div id="ocrBody"></div>
+  </div>
+</div>
+
+<div class="scanner-modal" id="fastScanModal">
+  <div class="scanner-box ocr-box">
+    <div class="scanner-header">
+      <span>⚡ Escaneo rápido — Salida al estante</span>
+      <button type="button" id="fastScanClose" aria-label="Cerrar">&times;</button>
+    </div>
+    <div id="fastScanReader"></div>
+    <p class="hint" id="fastScanStatus">Apuntá al código de barras…</p>
+    <div class="fastscan-list" id="fastScanList"></div>
+    <p class="fastscan-summary" id="fastScanSummary">0 producto(s) · 0 unidad(es) en total</p>
+    <div class="fastscan-actions">
+      <button type="button" class="addbtn" id="fastScanConfirm">✅ Enviar</button>
+      <button type="button" class="addbtn outbtn" id="fastScanCancel">✖ Cancelar</button>
+    </div>
   </div>
 </div>
 
@@ -590,6 +618,127 @@
   });
   document.getElementById('o-scanbtn').addEventListener('click', () => {
     escanearYSeleccionar(outId, outSearch);
+  });
+
+  // --- Modo escaneo rápido (pasillero): lee código tras código sin parar,
+  // arma una lista en vivo, y recién descuenta del stock cuando se confirma. ---
+  const fastScanModal = document.getElementById('fastScanModal');
+  const fastScanStatus = document.getElementById('fastScanStatus');
+  const fastScanListEl = document.getElementById('fastScanList');
+  const fastScanSummaryEl = document.getElementById('fastScanSummary');
+  let fastQrCode = null;
+  let fastScanPausado = false;
+  let escaneoRapidoItems = []; // [{ id, qty }]
+
+  function reproducirBeep(exito){
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = exito ? 1300 : 280;
+      gain.gain.setValueAtTime(0.18, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + (exito ? 0.15 : 0.3));
+      osc.start();
+      osc.stop(ctx.currentTime + (exito ? 0.15 : 0.3));
+      osc.onended = () => ctx.close();
+    } catch (e) { /* si el navegador bloquea audio, seguimos sin sonido */ }
+  }
+
+  function renderFastScanLista(){
+    if (escaneoRapidoItems.length === 0) {
+      fastScanListEl.innerHTML = '<p class="hint" style="margin:0;">Todavía no escaneaste nada.</p>';
+    } else {
+      fastScanListEl.innerHTML = escaneoRapidoItems.map((row, idx) => {
+        const item = items.find(i => i.id === row.id);
+        const nombre = item ? etiquetaProducto(item) : '(producto eliminado)';
+        return `<div class="fastscan-row">
+          <span class="fastscan-name">${esc(nombre)}</span>
+          <span class="fastscan-qty">${row.qty} un.</span>
+          <button type="button" class="del" data-idx="${idx}" aria-label="Quitar">&times;</button>
+        </div>`;
+      }).join('');
+      fastScanListEl.querySelectorAll('.del').forEach(btn => {
+        btn.addEventListener('click', () => {
+          escaneoRapidoItems.splice(parseInt(btn.dataset.idx, 10), 1);
+          renderFastScanLista();
+        });
+      });
+    }
+    const totalProductos = escaneoRapidoItems.length;
+    const totalUnidades = escaneoRapidoItems.reduce((a, b) => a + b.qty, 0);
+    fastScanSummaryEl.textContent = `${totalProductos} producto(s) · ${totalUnidades} unidad(es) en total`;
+  }
+
+  function manejarLecturaRapida(codigo){
+    if (fastScanPausado) return;
+    fastScanPausado = true;
+    const item = items.find(i => i.codigoBarras && i.codigoBarras === codigo);
+    if (!item) {
+      reproducirBeep(false);
+      fastScanStatus.textContent = '⚠️ Código no reconocido — seguí escaneando';
+    } else {
+      reproducirBeep(true);
+      const existente = escaneoRapidoItems.find(x => x.id === item.id);
+      if (existente) existente.qty += 1;
+      else escaneoRapidoItems.push({ id: item.id, qty: 1 });
+      renderFastScanLista();
+      fastScanStatus.textContent = `✔ ${etiquetaProducto(item)}`;
+    }
+    setTimeout(() => {
+      fastScanPausado = false;
+      fastScanStatus.textContent = 'Apuntá al código de barras…';
+    }, 900);
+  }
+
+  function abrirEscaneoRapido(){
+    escaneoRapidoItems = [];
+    renderFastScanLista();
+    fastScanModal.classList.add('show');
+    fastScanStatus.textContent = 'Apuntá al código de barras…';
+    fastQrCode = new Html5Qrcode('fastScanReader');
+    fastQrCode.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: { width: 230, height: 140 } },
+      (decodedText) => manejarLecturaRapida(decodedText.trim()),
+      () => { /* nada detectado en este frame, seguir intentando */ }
+    ).catch((err) => {
+      fastScanStatus.textContent = 'No se pudo abrir la cámara. Revisá los permisos.';
+      console.error(err);
+    });
+  }
+
+  function cerrarEscaneoRapido(){
+    fastScanModal.classList.remove('show');
+    if (fastQrCode) {
+      fastQrCode.stop().then(() => fastQrCode.clear()).catch(() => {});
+      fastQrCode = null;
+    }
+    escaneoRapidoItems = [];
+  }
+
+  document.getElementById('fastScanOpenBtn').addEventListener('click', abrirEscaneoRapido);
+  document.getElementById('fastScanClose').addEventListener('click', cerrarEscaneoRapido);
+  document.getElementById('fastScanCancel').addEventListener('click', cerrarEscaneoRapido);
+  document.getElementById('fastScanConfirm').addEventListener('click', () => {
+    if (escaneoRapidoItems.length === 0) { cerrarEscaneoRapido(); return; }
+    escaneoRapidoItems.forEach(row => {
+      const item = items.find(i => i.id === row.id);
+      if (!item) return;
+      const perCase = item.perCase || 1;
+      const newTotal = Math.max(0, totalUnits(item) - row.qty);
+      item.cases = Math.floor(newTotal / perCase);
+      item.loose = newTotal % perCase;
+    });
+    const totalAplicado = escaneoRapidoItems.reduce((a, b) => a + b.qty, 0);
+    const cantidadProductos = escaneoRapidoItems.length;
+    save();
+    render();
+    cerrarEscaneoRapido();
+    alert(`Salida registrada: ${cantidadProductos} producto(s), ${totalAplicado} unidad(es) en total.`);
   });
 
   // --- Lectura de factura por foto (OCR con Tesseract.js, 100% en el celular) ---
