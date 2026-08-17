@@ -99,7 +99,9 @@
   .fastscan-list { max-height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; margin:10px 0; }
   .fastscan-row { display:flex; align-items:center; gap:8px; background:var(--paper-2); border:1px solid var(--line); border-radius:6px; padding:6px 10px; }
   .fastscan-name { flex:1; font-family:'Courier New', monospace; font-size:13px; }
-  .fastscan-qty { font-family:'Courier New', monospace; font-size:12px; font-weight:bold; color:var(--ok); white-space:nowrap; }
+  .fastscan-qty { font-family:'Courier New', monospace; font-size:12px; font-weight:bold; color:var(--ok); white-space:nowrap; min-width:38px; text-align:center; }
+  .qtybtn { flex-shrink:0; width:26px; height:26px; border:1px solid var(--line); border-radius:6px; background:var(--paper); font-size:14px; font-weight:bold; cursor:pointer; line-height:1; color:var(--ink); }
+  .qtybtn:hover { background:var(--gold); color:#fff; }
   .fastscan-summary { font-size:13px; font-weight:bold; text-align:center; margin:6px 0; }
   .fastscan-actions { display:flex; gap:8px; }
   .fastscan-actions .addbtn { flex:1; }
@@ -657,10 +659,21 @@
         const nombre = item ? etiquetaProducto(item) : '(producto eliminado)';
         return `<div class="fastscan-row">
           <span class="fastscan-name">${esc(nombre)}</span>
+          <button type="button" class="qtybtn" data-idx="${idx}" data-dir="-1" aria-label="Restar uno">−</button>
           <span class="fastscan-qty">${row.qty} un.</span>
+          <button type="button" class="qtybtn" data-idx="${idx}" data-dir="1" aria-label="Sumar uno">+</button>
           <button type="button" class="del" data-idx="${idx}" aria-label="Quitar">&times;</button>
         </div>`;
       }).join('');
+      fastScanListEl.querySelectorAll('.qtybtn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.dataset.idx, 10);
+          const dir = parseInt(btn.dataset.dir, 10);
+          escaneoRapidoItems[idx].qty += dir;
+          if (escaneoRapidoItems[idx].qty <= 0) escaneoRapidoItems.splice(idx, 1);
+          renderFastScanLista();
+        });
+      });
       fastScanListEl.querySelectorAll('.del').forEach(btn => {
         btn.addEventListener('click', () => {
           escaneoRapidoItems.splice(parseInt(btn.dataset.idx, 10), 1);
@@ -691,7 +704,7 @@
     setTimeout(() => {
       fastScanPausado = false;
       fastScanStatus.textContent = 'Apuntá al código de barras…';
-    }, 900);
+    }, 1000);
   }
 
   function abrirEscaneoRapido(){
