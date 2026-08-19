@@ -292,13 +292,10 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/legacy/build/pdf.min.js"></script>
 <script>
-  if (window['pdfjs-dist/build/pdf']) {
-    window.pdfjsLib = window['pdfjs-dist/build/pdf'];
-  }
   if (window.pdfjsLib) {
-    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js';
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/legacy/build/pdf.worker.min.js';
   }
 </script>
 <script>
@@ -928,6 +925,9 @@
   // Convierte la primera página de un PDF en una imagen, usando pdf.js,
   // para poder pasarla por el mismo camino de OCR que una foto normal.
   async function pdfAImagenBlob(file){
+    if (!window.pdfjsLib) {
+      throw new Error('pdfjsLib no está disponible (no cargó la librería de PDF).');
+    }
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     const page = await pdf.getPage(1);
