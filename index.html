@@ -193,12 +193,12 @@
       </div>
     </div>
     <div>
-      <label>Precio costo (USD)</label>
-      <input type="number" id="f-costo" min="0" step="0.01" placeholder="opcional" />
+      <label>Costo total del bulto (USD)</label>
+      <input type="number" id="f-costo" min="0" step="0.01" placeholder="ej: 6.00" />
     </div>
     <div>
-      <label>Precio venta (USD)</label>
-      <input type="number" id="f-venta" min="0" step="0.01" placeholder="opcional" />
+      <label>Venta total del bulto (USD)</label>
+      <input type="number" id="f-venta" min="0" step="0.01" placeholder="ej: 7.50" />
     </div>
     <button type="submit" class="addbtn">Agregar</button>
   </form>
@@ -908,7 +908,7 @@
               </select>
               <div class="ocr-qty-price">
                 <input type="number" min="0" step="1" value="${d.cantidad}" data-role="cantidad" placeholder="Cantidad" />
-                <input type="number" min="0" step="0.01" value="${d.precioDetectado}" data-role="precio" placeholder="Costo $ (opcional)" />
+                <input type="number" min="0" step="0.01" value="${d.precioDetectado}" data-role="precio" placeholder="Costo $ del bulto (opcional)" />
               </div>
             </div>
           </div>
@@ -1072,9 +1072,14 @@
     document.getElementById('s-falta').textContent = agotados.length;
     document.getElementById('s-ok').textContent = total - agotados.length;
 
-    const valorInventario = items.reduce((acc, i) => acc + (i.costPrice || 0) * totalUnits(i), 0);
+    const valorInventario = items.reduce((acc, i) => {
+      const costoUnit = (i.costPrice || 0) / (i.perCase || 1);
+      return acc + costoUnit * totalUnits(i);
+    }, 0);
     const gananciaPotencial = items.reduce((acc, i) => {
-      const g = (i.salePrice || 0) - (i.costPrice || 0);
+      const costoUnit = (i.costPrice || 0) / (i.perCase || 1);
+      const ventaUnit = (i.salePrice || 0) / (i.perCase || 1);
+      const g = ventaUnit - costoUnit;
       return acc + (g > 0 ? g * totalUnits(i) : 0);
     }, 0);
     document.getElementById('s-valor').textContent = `$${valorInventario.toFixed(2)}`;
@@ -1100,20 +1105,23 @@
           const isMissing = cur <= 0;
           const medida = item.medida ? ` &middot; ${esc(item.medida)}` : '';
           const tagText = cur <= 0 ? 'Agotado' : `Quedan ${cur} un.`;
-          const costo = item.costPrice || 0;
-          const venta = item.salePrice || 0;
-          const hayPrecios = costo > 0 || venta > 0;
-          const esPerdida = venta > 0 && venta <= costo;
+          const perCase = item.perCase || 1;
+          const costoBulto = item.costPrice || 0;
+          const ventaBulto = item.salePrice || 0;
+          const costoUnit = costoBulto / perCase;
+          const ventaUnit = ventaBulto / perCase;
+          const hayPrecios = costoBulto > 0 || ventaBulto > 0;
+          const esPerdida = ventaBulto > 0 && ventaUnit <= costoUnit;
           let precioInfo = '';
           if (hayPrecios) {
-            if (venta > 0 && costo > 0) {
-              const gananciaUnit = venta - costo;
-              const margenPct = costo > 0 ? Math.round((gananciaUnit / costo) * 100) : 0;
-              precioInfo = `<span class="price-info ${esPerdida ? 'price-loss' : ''}">$${venta.toFixed(2)} vta · $${costo.toFixed(2)} costo · ${esPerdida ? '⚠ Pérdida' : `+$${gananciaUnit.toFixed(2)} (${margenPct}%)`}</span>`;
-            } else if (venta > 0) {
-              precioInfo = `<span class="price-info">$${venta.toFixed(2)} vta</span>`;
+            if (ventaBulto > 0 && costoBulto > 0) {
+              const gananciaUnit = ventaUnit - costoUnit;
+              const margenPct = costoUnit > 0 ? Math.round((gananciaUnit / costoUnit) * 100) : 0;
+              precioInfo = `<span class="price-info ${esPerdida ? 'price-loss' : ''}">$${ventaUnit.toFixed(2)}/u vta · $${costoUnit.toFixed(2)}/u costo · ${esPerdida ? '⚠ Pérdida' : `+$${gananciaUnit.toFixed(2)}/u (${margenPct}%)`} <small>(bulto: $${costoBulto.toFixed(2)} costo · $${ventaBulto.toFixed(2)} vta)</small></span>`;
+            } else if (ventaBulto > 0) {
+              precioInfo = `<span class="price-info">$${ventaUnit.toFixed(2)}/u vta <small>(bulto: $${ventaBulto.toFixed(2)})</small></span>`;
             } else {
-              precioInfo = `<span class="price-info">$${costo.toFixed(2)} costo</span>`;
+              precioInfo = `<span class="price-info">$${costoUnit.toFixed(2)}/u costo <small>(bulto: $${costoBulto.toFixed(2)})</small></span>`;
             }
           }
           return `<div class="row ${isMissing ? 'missing' : ''} ${esPerdida ? 'row-loss' : ''}">
@@ -1156,11 +1164,11 @@
       btn.addEventListener('click', () => {
         const item = items.find(i => i.id === btn.dataset.id);
         if (!item) return;
-        const nuevoCosto = prompt('Precio de costo (USD):', item.costPrice || '');
+        const nuevoCosto = prompt('Costo TOTAL del bulto/envase (USD):', item.costPrice || '');
         if (nuevoCosto !== null && nuevoCosto.trim() !== '' && !isNaN(parseFloat(nuevoCosto))) {
           item.costPrice = Math.max(0, parseFloat(nuevoCosto));
         }
-        const nuevaVenta = prompt('Precio de venta (USD):', item.salePrice || '');
+        const nuevaVenta = prompt('Venta TOTAL del bulto/envase (USD):', item.salePrice || '');
         if (nuevaVenta !== null && nuevaVenta.trim() !== '' && !isNaN(parseFloat(nuevaVenta))) {
           item.salePrice = Math.max(0, parseFloat(nuevaVenta));
         }
