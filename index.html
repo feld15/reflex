@@ -101,6 +101,7 @@
   .ocr-fields select, .ocr-fields input { font-family:'Courier New', monospace; font-size:13px; padding:6px; border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink); width:100%; }
   .ocr-qty-price { display:flex; gap:6px; }
   .ocr-qty-price input { width:50%; }
+  .price-mode { margin-top:4px; font-size:11px; padding:3px 4px; border:1px solid var(--line); border-radius:5px; background:var(--paper-2); color:#6b5f4a; width:100%; }
   .fastscanbtn { display:block; width:100%; margin-bottom:12px; background:#2E6E8C; }
   .fastscanbtn:hover { background:#25576f; }
   #fastScanReader { border-radius:8px; overflow:hidden; background:#000; min-height:200px; }
@@ -193,12 +194,20 @@
       </div>
     </div>
     <div>
-      <label>Costo total del bulto (USD)</label>
+      <label>Costo (USD)</label>
       <input type="number" id="f-costo" min="0" step="0.01" placeholder="ej: 6.00" />
+      <select id="f-costo-modo" class="price-mode">
+        <option value="bulto">por bulto</option>
+        <option value="unidad">por unidad</option>
+      </select>
     </div>
     <div>
-      <label>Venta total del bulto (USD)</label>
+      <label>Venta (USD)</label>
       <input type="number" id="f-venta" min="0" step="0.01" placeholder="ej: 7.50" />
+      <select id="f-venta-modo" class="price-mode">
+        <option value="bulto">por bulto</option>
+        <option value="unidad">por unidad</option>
+      </select>
     </div>
     <button type="submit" class="addbtn">Agregar</button>
   </form>
@@ -223,6 +232,10 @@
     <div>
       <label>Unidades sueltas que llegaron</label>
       <input type="number" id="r-loose" min="0" step="1" placeholder="0" />
+    </div>
+    <div>
+      <label>Total pagado por esta entrega (USD)</label>
+      <input type="number" id="r-total-pagado" min="0" step="0.01" placeholder="opcional" />
     </div>
     <button type="submit" class="addbtn">Sumar al stock</button>
   </form>
@@ -470,6 +483,17 @@
 
   function totalUnits(item){
     return (item.cases * item.perCase) + item.loose;
+  }
+
+  // Devuelve el costo y la venta ya convertidos a "por unidad", sin importar
+  // si el precio se cargó como total del bulto o directo por unidad suelta.
+  function preciosPorUnidad(item){
+    const perCase = item.perCase || 1;
+    const costoBulto = item.costPrice || 0;
+    const ventaBulto = item.salePrice || 0;
+    const costoUnit = item.costPriceModo === 'unidad' ? costoBulto : costoBulto / perCase;
+    const ventaUnit = item.salePriceModo === 'unidad' ? ventaBulto : ventaBulto / perCase;
+    return { costoUnit, ventaUnit };
   }
 
   // Convierte una medida de texto (400ml, 1L, 1.5 litros, 1kg...) a un valor
@@ -1073,12 +1097,11 @@
     document.getElementById('s-ok').textContent = total - agotados.length;
 
     const valorInventario = items.reduce((acc, i) => {
-      const costoUnit = (i.costPrice || 0) / (i.perCase || 1);
+      const { costoUnit } = preciosPorUnidad(i);
       return acc + costoUnit * totalUnits(i);
     }, 0);
     const gananciaPotencial = items.reduce((acc, i) => {
-      const costoUnit = (i.costPrice || 0) / (i.perCase || 1);
-      const ventaUnit = (i.salePrice || 0) / (i.perCase || 1);
+      const { costoUnit, ventaUnit } = preciosPorUnidad(i);
       const g = ventaUnit - costoUnit;
       return acc + (g > 0 ? g * totalUnits(i) : 0);
     }, 0);
@@ -1105,23 +1128,23 @@
           const isMissing = cur <= 0;
           const medida = item.medida ? ` &middot; ${esc(item.medida)}` : '';
           const tagText = cur <= 0 ? 'Agotado' : `Quedan ${cur} un.`;
-          const perCase = item.perCase || 1;
           const costoBulto = item.costPrice || 0;
           const ventaBulto = item.salePrice || 0;
-          const costoUnit = costoBulto / perCase;
-          const ventaUnit = ventaBulto / perCase;
+          const { costoUnit, ventaUnit } = preciosPorUnidad(item);
           const hayPrecios = costoBulto > 0 || ventaBulto > 0;
           const esPerdida = ventaBulto > 0 && ventaUnit <= costoUnit;
+          const detalleCosto = item.costPriceModo === 'unidad' ? 'costo cargado por unidad' : `bulto: $${costoBulto.toFixed(2)} costo`;
+          const detalleVenta = item.salePriceModo === 'unidad' ? 'venta cargada por unidad' : `bulto: $${ventaBulto.toFixed(2)} vta`;
           let precioInfo = '';
           if (hayPrecios) {
             if (ventaBulto > 0 && costoBulto > 0) {
               const gananciaUnit = ventaUnit - costoUnit;
               const margenPct = costoUnit > 0 ? Math.round((gananciaUnit / costoUnit) * 100) : 0;
-              precioInfo = `<span class="price-info ${esPerdida ? 'price-loss' : ''}">$${ventaUnit.toFixed(2)}/u vta · $${costoUnit.toFixed(2)}/u costo · ${esPerdida ? '⚠ Pérdida' : `+$${gananciaUnit.toFixed(2)}/u (${margenPct}%)`} <small>(bulto: $${costoBulto.toFixed(2)} costo · $${ventaBulto.toFixed(2)} vta)</small></span>`;
+              precioInfo = `<span class="price-info ${esPerdida ? 'price-loss' : ''}">$${ventaUnit.toFixed(2)}/u vta · $${costoUnit.toFixed(2)}/u costo · ${esPerdida ? '⚠ Pérdida' : `+$${gananciaUnit.toFixed(2)}/u (${margenPct}%)`} <small>(${detalleCosto} · ${detalleVenta})</small></span>`;
             } else if (ventaBulto > 0) {
-              precioInfo = `<span class="price-info">$${ventaUnit.toFixed(2)}/u vta <small>(bulto: $${ventaBulto.toFixed(2)})</small></span>`;
+              precioInfo = `<span class="price-info">$${ventaUnit.toFixed(2)}/u vta <small>(${detalleVenta})</small></span>`;
             } else {
-              precioInfo = `<span class="price-info">$${costoUnit.toFixed(2)}/u costo <small>(bulto: $${costoBulto.toFixed(2)})</small></span>`;
+              precioInfo = `<span class="price-info">$${costoUnit.toFixed(2)}/u costo <small>(${detalleCosto})</small></span>`;
             }
           }
           return `<div class="row ${isMissing ? 'missing' : ''} ${esPerdida ? 'row-loss' : ''}">
@@ -1164,13 +1187,21 @@
       btn.addEventListener('click', () => {
         const item = items.find(i => i.id === btn.dataset.id);
         if (!item) return;
-        const nuevoCosto = prompt('Costo TOTAL del bulto/envase (USD):', item.costPrice || '');
+        const nuevoCosto = prompt('Precio de costo (USD) — el número que pagaste:', item.costPrice || '');
         if (nuevoCosto !== null && nuevoCosto.trim() !== '' && !isNaN(parseFloat(nuevoCosto))) {
           item.costPrice = Math.max(0, parseFloat(nuevoCosto));
+          const modoCosto = prompt('Ese costo, ¿es por el bulto/envase completo o por una unidad suelta? Escribí "bulto" o "unidad":', item.costPriceModo || 'bulto');
+          if (modoCosto !== null) {
+            item.costPriceModo = modoCosto.trim().toLowerCase().startsWith('u') ? 'unidad' : 'bulto';
+          }
         }
-        const nuevaVenta = prompt('Venta TOTAL del bulto/envase (USD):', item.salePrice || '');
+        const nuevaVenta = prompt('Precio de venta (USD) — el número que cobrás:', item.salePrice || '');
         if (nuevaVenta !== null && nuevaVenta.trim() !== '' && !isNaN(parseFloat(nuevaVenta))) {
           item.salePrice = Math.max(0, parseFloat(nuevaVenta));
+          const modoVenta = prompt('Esa venta, ¿es por el bulto/envase completo o por una unidad suelta? Escribí "bulto" o "unidad":', item.salePriceModo || 'bulto');
+          if (modoVenta !== null) {
+            item.salePriceModo = modoVenta.trim().toLowerCase().startsWith('u') ? 'unidad' : 'bulto';
+          }
         }
         save();
         render();
@@ -1232,10 +1263,12 @@
     const codigoBarras = document.getElementById('f-barcode').value.trim();
     const costPrice = parseFloat(document.getElementById('f-costo').value) || 0;
     const salePrice = parseFloat(document.getElementById('f-venta').value) || 0;
+    const costPriceModo = document.getElementById('f-costo-modo').value;
+    const salePriceModo = document.getElementById('f-venta-modo').value;
     if (!name) return;
     items.push({
       id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-      name, categoria, tipoProducto, envase, medida, perCase, cases, loose, codigoBarras, costPrice, salePrice
+      name, categoria, tipoProducto, envase, medida, perCase, cases, loose, codigoBarras, costPrice, salePrice, costPriceModo, salePriceModo
     });
     save();
     render();
@@ -1251,6 +1284,9 @@
     if (!item) return;
     const addCases = parseInt(document.getElementById('r-cases').value, 10) || 0;
     const addLoose = parseInt(document.getElementById('r-loose').value, 10) || 0;
+    const totalPagado = parseFloat(document.getElementById('r-total-pagado').value) || 0;
+    const unidadesRecibidas = (addCases * (item.perCase || 1)) + addLoose;
+
     item.cases += addCases;
     item.loose += addLoose;
     if (item.perCase > 0 && item.loose >= item.perCase) {
@@ -1258,10 +1294,20 @@
       item.cases += extraCases;
       item.loose = item.loose % item.perCase;
     }
+
+    // Si pusiste cuánto pagaste por esta entrega, calculamos solos el costo
+    // por unidad (total ÷ unidades recibidas) — sirve para cualquier cantidad,
+    // sea un bulto completo, medio bulto, o una mezcla rara de ambos.
+    if (totalPagado > 0 && unidadesRecibidas > 0) {
+      item.costPrice = totalPagado / unidadesRecibidas;
+      item.costPriceModo = 'unidad';
+    }
+
     save();
     render();
     document.getElementById('r-cases').value = '';
     document.getElementById('r-loose').value = '';
+    document.getElementById('r-total-pagado').value = '';
   });
 
   outForm.addEventListener('submit', (e) => {
