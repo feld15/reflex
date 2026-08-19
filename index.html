@@ -29,7 +29,7 @@
   .exportbtn.simplebtn:hover { background:#25576f; }
   .export-actions { display:flex; gap:8px; }
   h2.section { font-size:15px; margin:24px 0 10px; border-top:1px dashed var(--line); padding-top:16px; }
-  form.add { display:grid; grid-template-columns: 1.2fr 0.8fr 0.9fr 0.8fr 0.8fr 0.9fr 0.8fr 0.9fr auto; gap:8px; margin-bottom:20px; align-items:end; }
+  form.add { display:grid; grid-template-columns: 1.1fr 0.7fr 0.8fr 0.7fr 0.7fr 0.8fr 0.7fr 0.8fr 0.7fr 0.7fr auto; gap:8px; margin-bottom:20px; align-items:end; }
   form.move { display:grid; grid-template-columns: 2fr 1fr 1fr auto; gap:8px; margin-bottom:20px; align-items:end; }
   form.moveout { display:grid; grid-template-columns: 2fr 1fr auto; gap:8px; margin-bottom:20px; align-items:end; }
   @media (max-width: 950px) { form.add, form.move, form.moveout { grid-template-columns: 1fr 1fr; } }
@@ -62,6 +62,11 @@
   .edit:hover { color: var(--gold); }
   .qtyedit { background:none; border:none; color:#9a8c6f; cursor:pointer; font-size:15px; padding:4px; line-height:1; }
   .qtyedit:hover { color: #2E6E8C; }
+  .priceedit { background:none; border:none; color:#9a8c6f; cursor:pointer; font-size:15px; padding:4px; line-height:1; }
+  .priceedit:hover { color: #1f7a4d; }
+  .price-info { display:block; font-size:11px; margin-top:2px; color:var(--ok); font-weight:bold; }
+  .price-info.price-loss { color: var(--warn); }
+  .row.row-loss { border-color: var(--warn); }
   .empty { text-align:center; padding:30px; color:#6b5f4a; font-style:italic; }
   .loading { text-align:center; padding:20px; color:#6b5f4a; }
   .hint { font-size:11px; color:#6b5f4a; margin:-8px 0 16px; }
@@ -94,6 +99,8 @@
   .ocr-fields { flex:1; display:flex; flex-direction:column; gap:6px; }
   .ocr-original { font-family:'Courier New', monospace; font-size:11px; color:#6b5f4a; font-style:italic; }
   .ocr-fields select, .ocr-fields input { font-family:'Courier New', monospace; font-size:13px; padding:6px; border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink); width:100%; }
+  .ocr-qty-price { display:flex; gap:6px; }
+  .ocr-qty-price input { width:50%; }
   .fastscanbtn { display:block; width:100%; margin-bottom:12px; background:#2E6E8C; }
   .fastscanbtn:hover { background:#25576f; }
   #fastScanReader { border-radius:8px; overflow:hidden; background:#000; min-height:200px; }
@@ -133,6 +140,8 @@
     <div class="stat"><b id="s-total">0</b><span>productos</span></div>
     <div class="stat warn"><b id="s-falta">0</b><span>agotados</span></div>
     <div class="stat ok"><b id="s-ok">0</b><span>en stock</span></div>
+    <div class="stat"><b id="s-valor">$0</b><span>valor inventario</span></div>
+    <div class="stat ok"><b id="s-ganancia">$0</b><span>ganancia potencial</span></div>
   </div>
 
   <div class="backup-row">
@@ -182,6 +191,14 @@
         <input type="text" id="f-barcode" placeholder="opcional" />
         <button type="button" class="scanbtn" id="f-scanbtn" aria-label="Escanear código">📷</button>
       </div>
+    </div>
+    <div>
+      <label>Precio costo (USD)</label>
+      <input type="number" id="f-costo" min="0" step="0.01" placeholder="opcional" />
+    </div>
+    <div>
+      <label>Precio venta (USD)</label>
+      <input type="number" id="f-venta" min="0" step="0.01" placeholder="opcional" />
     </div>
     <button type="submit" class="addbtn">Agregar</button>
   </form>
@@ -854,15 +871,18 @@
   function procesarTextoFactura(texto){
     const lineas = texto.split('\n').map(l => l.trim()).filter(l => l.length > 2);
     const detecciones = lineas.map(linea => {
-      const m = linea.match(/(\d+)/);
+      const precioMatch = linea.match(/(\d+[.,]\d{1,2})/);
+      const precioDetectado = precioMatch ? parseFloat(precioMatch[1].replace(',', '.')) : '';
+      const lineaSinPrecio = precioMatch ? linea.replace(precioMatch[0], ' ') : linea;
+      const m = lineaSinPrecio.match(/(\d+)/);
       const cantidad = m ? parseInt(m[1], 10) : 1;
-      const nombreDetectado = linea
+      const nombreDetectado = lineaSinPrecio
         .replace(/\d+/, '')
         .replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ ]/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
       const sugerencia = mejorCoincidencia(nombreDetectado);
-      return { textoOriginal: linea, nombreDetectado, cantidad, sugerenciaId: sugerencia ? sugerencia.id : '' };
+      return { textoOriginal: linea, nombreDetectado, cantidad, precioDetectado, sugerenciaId: sugerencia ? sugerencia.id : '' };
     }).filter(d => d.nombreDetectado.length > 2);
     mostrarRevisionFactura(detecciones);
   }
@@ -875,7 +895,7 @@
     }
     const opciones = items.map(i => `<option value="${i.id}">${esc(etiquetaProducto(i))}</option>`).join('');
     ocrBody.innerHTML = `
-      <p class="hint">Revisá cada línea, corregí el producto o la cantidad si hace falta, y confirmá. Se suman como unidades sueltas al stock.</p>
+      <p class="hint">Revisá cada línea, corregí el producto, la cantidad o el precio de costo, y confirmá. La cantidad se suma como unidades sueltas al stock; el precio de costo se actualiza si lo dejás cargado.</p>
       <div class="ocr-rows">
         ${detecciones.map((d, idx) => `
           <div class="ocr-row" data-idx="${idx}">
@@ -886,7 +906,10 @@
                 <option value="">-- No coincide, elegir --</option>
                 ${opciones}
               </select>
-              <input type="number" min="0" step="1" value="${d.cantidad}" data-role="cantidad" />
+              <div class="ocr-qty-price">
+                <input type="number" min="0" step="1" value="${d.cantidad}" data-role="cantidad" placeholder="Cantidad" />
+                <input type="number" min="0" step="0.01" value="${d.precioDetectado}" data-role="precio" placeholder="Costo $ (opcional)" />
+              </div>
             </div>
           </div>
         `).join('')}
@@ -904,6 +927,7 @@
         const incluir = row.querySelector('[data-role="incluir"]').checked;
         const id = row.querySelector('[data-role="producto"]').value;
         const cantidad = parseInt(row.querySelector('[data-role="cantidad"]').value, 10) || 0;
+        const precio = parseFloat(row.querySelector('[data-role="precio"]').value);
         if (!incluir || !id || cantidad <= 0) return;
         const item = items.find(i => i.id === id);
         if (!item) return;
@@ -912,6 +936,9 @@
           const extra = Math.floor(item.loose / item.perCase);
           item.cases += extra;
           item.loose = item.loose % item.perCase;
+        }
+        if (!isNaN(precio) && precio > 0) {
+          item.costPrice = precio;
         }
         aplicados++;
       });
@@ -1045,6 +1072,14 @@
     document.getElementById('s-falta').textContent = agotados.length;
     document.getElementById('s-ok').textContent = total - agotados.length;
 
+    const valorInventario = items.reduce((acc, i) => acc + (i.costPrice || 0) * totalUnits(i), 0);
+    const gananciaPotencial = items.reduce((acc, i) => {
+      const g = (i.salePrice || 0) - (i.costPrice || 0);
+      return acc + (g > 0 ? g * totalUnits(i) : 0);
+    }, 0);
+    document.getElementById('s-valor').textContent = `$${valorInventario.toFixed(2)}`;
+    document.getElementById('s-ganancia').textContent = `$${gananciaPotencial.toFixed(2)}`;
+
     updateEnvaseLabel();
 
     if (!loaded) {
@@ -1065,13 +1100,31 @@
           const isMissing = cur <= 0;
           const medida = item.medida ? ` &middot; ${esc(item.medida)}` : '';
           const tagText = cur <= 0 ? 'Agotado' : `Quedan ${cur} un.`;
-          return `<div class="row ${isMissing ? 'missing' : ''}">
+          const costo = item.costPrice || 0;
+          const venta = item.salePrice || 0;
+          const hayPrecios = costo > 0 || venta > 0;
+          const esPerdida = venta > 0 && venta <= costo;
+          let precioInfo = '';
+          if (hayPrecios) {
+            if (venta > 0 && costo > 0) {
+              const gananciaUnit = venta - costo;
+              const margenPct = costo > 0 ? Math.round((gananciaUnit / costo) * 100) : 0;
+              precioInfo = `<span class="price-info ${esPerdida ? 'price-loss' : ''}">$${venta.toFixed(2)} vta · $${costo.toFixed(2)} costo · ${esPerdida ? '⚠ Pérdida' : `+$${gananciaUnit.toFixed(2)} (${margenPct}%)`}</span>`;
+            } else if (venta > 0) {
+              precioInfo = `<span class="price-info">$${venta.toFixed(2)} vta</span>`;
+            } else {
+              precioInfo = `<span class="price-info">$${costo.toFixed(2)} costo</span>`;
+            }
+          }
+          return `<div class="row ${isMissing ? 'missing' : ''} ${esPerdida ? 'row-loss' : ''}">
             <div class="rowname">
               <b>${esc(item.name)}${medida}</b>
               <span>${item.cases} ${esc(item.envase || 'envase')}(s) &times; ${item.perCase} + ${item.loose} sueltas</span>
+              ${precioInfo}
             </div>
             <div class="tag ${isMissing ? 'warn' : 'ok'}">${tagText}</div>
             <button class="qtyedit" aria-label="Corregir cantidad de ${esc(item.name)}" data-id="${item.id}">🔢</button>
+            <button class="priceedit" aria-label="Corregir precios de ${esc(item.name)}" data-id="${item.id}">💲</button>
             <button class="edit" aria-label="Editar producto ${esc(item.name)}" data-id="${item.id}">✎</button>
             <button class="del" aria-label="Eliminar ${esc(item.name)}" data-id="${item.id}">&times;</button>
           </div>`;
@@ -1093,6 +1146,23 @@
         const nuevasSueltas = prompt('Unidades sueltas actuales:', item.loose);
         if (nuevasSueltas !== null && nuevasSueltas.trim() !== '' && !isNaN(parseInt(nuevasSueltas, 10))) {
           item.loose = Math.max(0, parseInt(nuevasSueltas, 10));
+        }
+        save();
+        render();
+      });
+    });
+
+    listEl.querySelectorAll('.priceedit').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const item = items.find(i => i.id === btn.dataset.id);
+        if (!item) return;
+        const nuevoCosto = prompt('Precio de costo (USD):', item.costPrice || '');
+        if (nuevoCosto !== null && nuevoCosto.trim() !== '' && !isNaN(parseFloat(nuevoCosto))) {
+          item.costPrice = Math.max(0, parseFloat(nuevoCosto));
+        }
+        const nuevaVenta = prompt('Precio de venta (USD):', item.salePrice || '');
+        if (nuevaVenta !== null && nuevaVenta.trim() !== '' && !isNaN(parseFloat(nuevaVenta))) {
+          item.salePrice = Math.max(0, parseFloat(nuevaVenta));
         }
         save();
         render();
@@ -1152,10 +1222,12 @@
     const cases = parseInt(document.getElementById('f-cases').value, 10) || 0;
     const loose = parseInt(document.getElementById('f-loose').value, 10) || 0;
     const codigoBarras = document.getElementById('f-barcode').value.trim();
+    const costPrice = parseFloat(document.getElementById('f-costo').value) || 0;
+    const salePrice = parseFloat(document.getElementById('f-venta').value) || 0;
     if (!name) return;
     items.push({
       id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-      name, categoria, tipoProducto, envase, medida, perCase, cases, loose, codigoBarras
+      name, categoria, tipoProducto, envase, medida, perCase, cases, loose, codigoBarras, costPrice, salePrice
     });
     save();
     render();
