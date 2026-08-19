@@ -102,6 +102,13 @@
   .fastscan-qty { font-family:'Courier New', monospace; font-size:12px; font-weight:bold; color:var(--ok); white-space:nowrap; min-width:38px; text-align:center; }
   .qtybtn { flex-shrink:0; width:26px; height:26px; border:1px solid var(--line); border-radius:6px; background:var(--paper); font-size:14px; font-weight:bold; cursor:pointer; line-height:1; color:var(--ink); }
   .qtybtn:hover { background:var(--gold); color:#fff; }
+  .invoice-dropzone { border:2px dashed var(--line); border-radius:10px; padding:28px 16px; text-align:center; cursor:pointer; background:var(--paper-2); margin-bottom:10px; }
+  .invoice-dropzone:hover { border-color:var(--gold); background:#F3EBD8; }
+  .invoice-dropzone-icon { font-size:28px; display:block; margin-bottom:6px; }
+  .invoice-dropzone p { margin:0; font-size:13px; color:var(--ink); }
+  .invoice-dropzone small { color:#6b5f4a; font-size:11px; }
+  .invoice-or { text-align:center; color:#6b5f4a; font-size:12px; margin:8px 0; position:relative; }
+  .invoice-or span { background:var(--paper); padding:0 8px; }
   .fastscan-summary { font-size:13px; font-weight:bold; text-align:center; margin:6px 0; }
   .fastscan-actions { display:flex; gap:8px; }
   .fastscan-actions .addbtn { flex:1; }
@@ -187,7 +194,6 @@
         <input type="text" id="r-product-search" placeholder="Escribí para buscar (ej: colita)" autocomplete="off" />
         <button type="button" class="scanbtn" id="r-scanbtn" aria-label="Escanear código">📷</button>
         <button type="button" class="scanbtn" id="r-invoicebtn" aria-label="Escanear factura">📄</button>
-        <input type="file" id="r-invoice-input" accept="image/*" capture="environment" style="display:none" />
       </div>
       <input type="hidden" id="r-product-id" />
       <div class="combo-suggestions" id="r-product-suggestions"></div>
@@ -239,6 +245,23 @@
   </div>
 </div>
 
+<div class="scanner-modal" id="invoiceChoiceModal">
+  <div class="scanner-box">
+    <div class="scanner-header">
+      <span>Escanear factura</span>
+      <button type="button" id="invoiceChoiceClose" aria-label="Cerrar">&times;</button>
+    </div>
+    <div class="invoice-dropzone" id="invoiceDropzone">
+      <span class="invoice-dropzone-icon">📎</span>
+      <p>Cargá el archivo<br><small>JPG, PNG o PDF · máx. 5MB</small></p>
+    </div>
+    <input type="file" id="r-invoice-file-input" accept="image/jpeg,image/png,image/jpg,application/pdf" style="display:none" />
+    <div class="invoice-or"><span>o</span></div>
+    <button type="button" class="addbtn" id="invoiceCameraBtn">📷 Usar la cámara</button>
+    <input type="file" id="r-invoice-camera-input" accept="image/*" capture="environment" style="display:none" />
+  </div>
+</div>
+
 <div class="scanner-modal" id="ocrModal">
   <div class="scanner-box ocr-box">
     <div class="scanner-header">
@@ -268,6 +291,15 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.js"></script>
+<script>
+  if (window['pdfjs-dist/build/pdf']) {
+    window.pdfjsLib = window['pdfjs-dist/build/pdf'];
+  }
+  if (window.pdfjsLib) {
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js';
+  }
+</script>
 <script>
 (function(){
   const STORAGE_KEY = 'deposito-items';
@@ -892,10 +924,35 @@
     });
   }
 
+  // Convierte la primera página de un PDF en una imagen, usando pdf.js,
+  // para poder pasarla por el mismo camino de OCR que una foto normal.
+  async function pdfAImagenBlob(file){
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const page = await pdf.getPage(1);
+    const viewport = page.getViewport({ scale: 2 });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d');
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    return new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+  }
+
   async function escanearFactura(file){
     try {
+      if (file.size > 5 * 1024 * 1024) {
+        alert('El archivo pesa más de 5MB. Elegí uno más liviano o sacale una foto en vez de subir el archivo original.');
+        return;
+      }
+      let archivoImagen = file;
+      const esPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+      if (esPdf) {
+        mostrarModalOcr('Convirtiendo el PDF…');
+        archivoImagen = await pdfAImagenBlob(file);
+      }
       mostrarModalOcr('Preparando imagen…');
-      const blob = await preprocesarImagen(file);
+      const blob = await preprocesarImagen(archivoImagen);
       mostrarModalOcr('Leyendo factura… 0%');
       const worker = await getOcrWorker();
       const timeout = new Promise((_, reject) =>
@@ -910,13 +967,36 @@
     }
   }
 
-  document.getElementById('r-invoicebtn').addEventListener('click', () => {
-    document.getElementById('r-invoice-input').click();
+  // --- Elegir cómo cargar la factura: archivo ya guardado, o sacarle una foto ---
+  const invoiceChoiceModal = document.getElementById('invoiceChoiceModal');
+  function abrirEleccionFactura(){
+    invoiceChoiceModal.classList.add('show');
+  }
+  function cerrarEleccionFactura(){
+    invoiceChoiceModal.classList.remove('show');
+  }
+  document.getElementById('r-invoicebtn').addEventListener('click', abrirEleccionFactura);
+  document.getElementById('invoiceChoiceClose').addEventListener('click', cerrarEleccionFactura);
+
+  document.getElementById('invoiceDropzone').addEventListener('click', () => {
+    document.getElementById('r-invoice-file-input').click();
   });
-  document.getElementById('r-invoice-input').addEventListener('change', (e) => {
+  document.getElementById('r-invoice-file-input').addEventListener('change', (e) => {
     const file = e.target.files[0];
     e.target.value = '';
     if (!file) return;
+    cerrarEleccionFactura();
+    escanearFactura(file);
+  });
+
+  document.getElementById('invoiceCameraBtn').addEventListener('click', () => {
+    document.getElementById('r-invoice-camera-input').click();
+  });
+  document.getElementById('r-invoice-camera-input').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    cerrarEleccionFactura();
     escanearFactura(file);
   });
 
