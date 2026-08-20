@@ -556,7 +556,7 @@
   // Descuenta unidades de los lotes empezando por el más viejo (FIFO), para
   // que lo que se saca primero al estante sea siempre lo que llegó antes.
   function consumirLotesFIFO(item, cantidad){
-    if (!item.usaLotes || !item.lotes || item.lotes.length === 0) return;
+    if (!item.lotes || item.lotes.length === 0) return;
     item.lotes.sort((a, b) => new Date(a.fechaLlegada) - new Date(b.fechaLlegada));
     let restante = cantidad;
     const nuevosLotes = [];
@@ -1520,6 +1520,14 @@
 
     listEl.querySelectorAll('.del').forEach(btn => {
       btn.addEventListener('click', () => {
+        const item = items.find(i => i.id === btn.dataset.id);
+        if (!item) return;
+        const confirmado = confirm(
+          `¿Eliminar "${item.name}" definitivamente?\n\n` +
+          `Esto borra el producto junto con todo su historial de lotes, precios y vencimientos. ` +
+          `Es una acción permanente y no se puede deshacer.`
+        );
+        if (!confirmado) return;
         items = items.filter(i => i.id !== btn.dataset.id);
         save();
         render();
@@ -1585,9 +1593,7 @@
         cantidadBulto: unidadesDesdeBulto, costoBultoTotal: costoBultoInput, ventaBultoTotal: ventaBultoInput,
         cantidadUnidad: unidadesDesdeSuelta, costoUnidadDirecta: costoUnidadInput, ventaUnidadDirecta: ventaUnidadInput
       };
-      if (usaLotes) {
-        nuevo.lotes.push({ ...loteBase });
-      }
+      nuevo.lotes.push({ ...loteBase });
       nuevo.historialLotes.push({ ...loteBase });
       nuevo.historialCostos.push({ fecha: hoy, costoUnit: costPrice });
     }
@@ -1658,9 +1664,7 @@
         cantidadBulto: addCases * (item.perCase || 1), costoBultoTotal: 0, ventaBultoTotal: 0,
         cantidadUnidad: addLoose, costoUnidadDirecta: 0, ventaUnidadDirecta: 0
       };
-      if (item.usaLotes) {
-        item.lotes.push({ ...loteBase });
-      }
+      item.lotes.push({ ...loteBase });
       item.historialLotes.push({ ...loteBase });
       item.historialCostos.push({ fecha: hoy, costoUnit });
     }
