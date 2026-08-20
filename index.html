@@ -56,6 +56,7 @@
   .tag { font-family:'Courier New', monospace; font-size:12px; font-weight:bold; padding:5px 12px; border-radius:20px; white-space:nowrap; }
   .tag.warn { background: var(--warn); color:#fff; }
   .tag.ok { background: #E4EEE3; color: #1E4A30; border: 1px solid #9CC4AC; }
+  .tag.lowstock { background: #F3E4C8; color: #7A4E12; border: 1px solid #D9B679; }
   .del { background:none; border:none; color:#9a8c6f; cursor:pointer; font-size:16px; padding:4px; line-height:1; }
   .del:hover { color: var(--warn); }
   .edit { background:none; border:none; color:#9a8c6f; cursor:pointer; font-size:15px; padding:4px; line-height:1; }
@@ -102,6 +103,40 @@
   .ocr-qty-price { display:flex; gap:6px; }
   .ocr-qty-price input { width:50%; }
   .price-mode { margin-top:4px; font-size:11px; padding:3px 4px; border:1px solid var(--line); border-radius:5px; background:var(--paper-2); color:#6b5f4a; width:100%; }
+  .price-block { grid-column: 1 / -1; background:var(--paper-2); border:1px dashed var(--line); border-radius:8px; padding:10px; margin-bottom:8px; }
+  .price-block > label { font-size:11px; color:#6b5f4a; display:block; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.4px; }
+  .price-mode-select { width:100%; font-family:'Courier New', monospace; font-size:13px; padding:7px; border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink); margin-bottom:8px; }
+  .price-fields-group { display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:8px; }
+  .price-fields-group label { font-size:11px; color:#6b5f4a; display:block; margin-bottom:3px; text-transform:uppercase; letter-spacing:0.4px; }
+  .price-fields-group input { width:100%; font-family:'Courier New', monospace; font-size:13px; padding:7px; border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink); }
+  .price-fields-group.pf-unidad { margin-top:8px; }
+  .lote-toggle-label { display:flex; align-items:center; gap:6px; font-size:12px; color:#6b5f4a; grid-column: 1 / -1; margin:-6px 0 4px; cursor:pointer; }
+  .lote-toggle-label input { width:auto; }
+  .lote-fields { display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:8px; grid-column: 1 / -1; background:var(--paper-2); border:1px dashed var(--line); border-radius:8px; padding:10px; margin-bottom:8px; }
+  .lote-fields label { font-size:11px; color:#6b5f4a; display:block; margin-bottom:3px; text-transform:uppercase; letter-spacing:0.4px; }
+  .lote-fields input { width:100%; font-family:'Courier New', monospace; font-size:13px; padding:6px; border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink); }
+  .lote-badge { display:block; font-size:11px; margin-top:3px; color:#6b5f4a; }
+  .lote-badge.vencer { color: var(--warn); font-weight:bold; }
+  .lote-badge.stockbajo { color: #B07E2C; font-weight:bold; }
+  .trend-up { color: var(--warn); font-weight:bold; }
+  .trend-down { color: var(--ok); font-weight:bold; }
+  .margin-bar-wrap { background:var(--paper); border:1px solid var(--line); border-radius:6px; height:8px; width:100%; margin-top:4px; overflow:hidden; }
+  .margin-bar-fill { height:100%; border-radius:6px 0 0 6px; transition:width 0.3s; }
+  .row.stock-bajo { border-color:#B07E2C; }
+  .row.por-vencer { border-color:var(--warn); border-style:dashed; }
+  .histbtn { display:block; width:100%; background:none; border:1px dashed var(--line); border-radius:6px; padding:6px; font-size:11px; color:#6b5f4a; cursor:pointer; margin:2px 0 8px; }
+  .histbtn:hover { background:var(--paper-2); color:var(--ink); }
+  .historial-panel { background:var(--paper-2); border:1px solid var(--line); border-radius:8px; padding:10px; margin:-4px 0 10px; }
+  .hist-fecha-group { margin-bottom:10px; }
+  .hist-fecha-group:last-child { margin-bottom:0; }
+  .hist-fecha-titulo { font-size:12px; font-weight:bold; color:var(--ink); margin-bottom:6px; text-transform:capitalize; }
+  .hist-tarjetas { display:flex; gap:6px; flex-wrap:wrap; }
+  .lote-card { min-width:80px; border-radius:6px; padding:6px 8px; cursor:pointer; font-family:'Courier New', monospace; font-size:11px; border:1px solid transparent; }
+  .lote-card b { display:block; font-size:12px; }
+  .lote-card.lote-rojo { background:#F5E1D8; color:#8f371f; border-color:#E3B39E; }
+  .lote-card.lote-amarillo { background:#F3E4C8; color:#7A4E12; border-color:#D9B679; }
+  .lote-card.lote-verde { background:#E4EEE3; color:#1E4A30; border-color:#9CC4AC; }
+  .hist-detalle-box { background:var(--paper); border:1px solid var(--line); border-radius:6px; padding:8px; margin-top:6px; font-size:12px; line-height:1.6; }
   .fastscanbtn { display:block; width:100%; margin-bottom:12px; background:#2E6E8C; }
   .fastscanbtn:hover { background:#25576f; }
   #fastScanReader { border-radius:8px; overflow:hidden; background:#000; min-height:200px; }
@@ -143,6 +178,7 @@
     <div class="stat ok"><b id="s-ok">0</b><span>en stock</span></div>
     <div class="stat"><b id="s-valor">$0</b><span>valor inventario</span></div>
     <div class="stat ok"><b id="s-ganancia">$0</b><span>ganancia potencial</span></div>
+    <div class="stat warn"><b id="s-vencer">0</b><span>por vencer</span></div>
   </div>
 
   <div class="backup-row">
@@ -193,21 +229,51 @@
         <button type="button" class="scanbtn" id="f-scanbtn" aria-label="Escanear código">📷</button>
       </div>
     </div>
-    <div>
-      <label>Costo (USD)</label>
-      <input type="number" id="f-costo" min="0" step="0.01" placeholder="ej: 6.00" />
-      <select id="f-costo-modo" class="price-mode">
-        <option value="bulto">por bulto</option>
-        <option value="unidad">por unidad</option>
+    <div class="price-block">
+      <label>¿Cómo comprás este producto?</label>
+      <select id="f-price-mode" class="price-mode-select">
+        <option value="bulto">Por bulto completo</option>
+        <option value="unidad">Por unidad suelta</option>
+        <option value="ambos">Ambos (a veces bulto, a veces suelta)</option>
       </select>
+      <div class="price-fields-group pf-bulto" id="fPfBulto">
+        <div>
+          <label>Costo por bulto (USD)</label>
+          <input type="number" id="f-costo-bulto" min="0" step="0.01" placeholder="ej: 6.00" />
+        </div>
+        <div>
+          <label>Venta por bulto (USD)</label>
+          <input type="number" id="f-venta-bulto" min="0" step="0.01" placeholder="ej: 7.50" />
+        </div>
+      </div>
+      <div class="price-fields-group pf-unidad" id="fPfUnidad" style="display:none;">
+        <div>
+          <label>Costo por unidad (USD)</label>
+          <input type="number" id="f-costo-unidad" min="0" step="0.01" placeholder="ej: 1.00" />
+        </div>
+        <div>
+          <label>Venta por unidad (USD)</label>
+          <input type="number" id="f-venta-unidad" min="0" step="0.01" placeholder="ej: 1.25" />
+        </div>
+      </div>
     </div>
-    <div>
-      <label>Venta (USD)</label>
-      <input type="number" id="f-venta" min="0" step="0.01" placeholder="ej: 7.50" />
-      <select id="f-venta-modo" class="price-mode">
-        <option value="bulto">por bulto</option>
-        <option value="unidad">por unidad</option>
-      </select>
+    <label class="lote-toggle-label">
+      <input type="checkbox" id="f-usalotes" />
+      📅 Este producto tiene fecha de vencimiento (activa el control de lotes)
+    </label>
+    <div class="lote-fields" id="loteFieldsAdd" style="display:none;">
+      <div>
+        <label>Vence el</label>
+        <input type="date" id="f-vencimiento" />
+      </div>
+      <div>
+        <label>Avisar "por vencer" con cuántos días</label>
+        <input type="number" id="f-dias-aviso" min="1" step="1" placeholder="ej: 30" value="30" />
+      </div>
+      <div>
+        <label>Avisar stock bajo con menos de</label>
+        <input type="number" id="f-stock-bajo" min="0" step="1" placeholder="ej: 10 unidades" />
+      </div>
     </div>
     <button type="submit" class="addbtn">Agregar</button>
   </form>
@@ -215,6 +281,12 @@
   <h2 class="section">Registrar llegada de mercancía</h2>
   <p class="hint">Elegí un producto ya cargado y sumá lo que llegó hoy al depósito, o escaneá la factura completa.</p>
   <form class="move" id="restockForm">
+    <div class="lote-fields" id="loteFieldsRestock" style="display:none;">
+      <div>
+        <label>Vence el (este lote nuevo)</label>
+        <input type="date" id="r-vencimiento" />
+      </div>
+    </div>
     <div class="combo-wrap">
       <label>Producto</label>
       <div class="scan-row">
@@ -481,6 +553,26 @@
     });
   }
 
+  // Descuenta unidades de los lotes empezando por el más viejo (FIFO), para
+  // que lo que se saca primero al estante sea siempre lo que llegó antes.
+  function consumirLotesFIFO(item, cantidad){
+    if (!item.usaLotes || !item.lotes || item.lotes.length === 0) return;
+    item.lotes.sort((a, b) => new Date(a.fechaLlegada) - new Date(b.fechaLlegada));
+    let restante = cantidad;
+    const nuevosLotes = [];
+    for (const lote of item.lotes) {
+      if (restante <= 0) { nuevosLotes.push(lote); continue; }
+      if (lote.cantidad <= restante) {
+        restante -= lote.cantidad;
+      } else {
+        lote.cantidad -= restante;
+        restante = 0;
+        nuevosLotes.push(lote);
+      }
+    }
+    item.lotes = nuevosLotes;
+  }
+
   function totalUnits(item){
     return (item.cases * item.perCase) + item.loose;
   }
@@ -520,6 +612,10 @@
   function updateEnvaseLabel(){
     const item = items.find(i => i.id === restockId.value);
     restockEnvaseLabel.textContent = item && item.envase ? item.envase + 's' : 'envases';
+    const loteFieldsRestock = document.getElementById('loteFieldsRestock');
+    if (loteFieldsRestock) {
+      loteFieldsRestock.style.display = (item && item.usaLotes) ? 'grid' : 'none';
+    }
   }
 
   function quitarAcentos(s){
@@ -816,6 +912,7 @@
       const newTotal = Math.max(0, totalUnits(item) - row.qty);
       item.cases = Math.floor(newTotal / perCase);
       item.loose = newTotal % perCase;
+      consumirLotesFIFO(item, row.qty);
     });
     const totalAplicado = escaneoRapidoItems.reduce((a, b) => a + b.qty, 0);
     const cantidadProductos = escaneoRapidoItems.length;
@@ -1089,6 +1186,103 @@
     prepararFactura(file);
   });
 
+  function formatFecha(fechaStr){
+    if (!fechaStr) return '';
+    const d = new Date(fechaStr + 'T00:00:00');
+    const texto = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    return texto.charAt(0).toUpperCase() + texto.slice(1);
+  }
+
+  // Para cada entrega del historial, calcula cuánto queda todavía (buscando
+  // si sigue existiendo, y con cuánta cantidad, dentro de los lotes activos).
+  function restanteDeLote(item, loteHist){
+    if (!item.lotes) return 0;
+    const activo = item.lotes.find(l => l.id === loteHist.id);
+    return activo ? activo.cantidad : 0;
+  }
+
+  // Arma el HTML del historial: agrupado por fecha, con una tarjeta de color
+  // por entrega — rojo (agotada), amarillo (la que se está consumiendo ahora,
+  // la más vieja con stock), verde (las más nuevas, todavía sin tocar).
+  function renderHistorialHTML(item){
+    const historial = [...(item.historialLotes || [])].sort((a, b) => new Date(b.fechaLlegada) - new Date(a.fechaLlegada));
+    if (historial.length === 0) return '<p class="hint">Todavía no hay entregas registradas.</p>';
+
+    // Identificar cuál es la "amarilla": entre las que todavía tienen stock,
+    // la más vieja (esa es la que el FIFO está sacando ahora).
+    const conStock = historial
+      .map(h => ({ h, restante: restanteDeLote(item, h) }))
+      .filter(x => x.restante > 0)
+      .sort((a, b) => new Date(a.h.fechaLlegada) - new Date(b.h.fechaLlegada));
+    const idEnConsumo = conStock.length > 0 ? conStock[0].h.id : null;
+
+    const grupos = {};
+    historial.forEach(h => {
+      if (!grupos[h.fechaLlegada]) grupos[h.fechaLlegada] = [];
+      grupos[h.fechaLlegada].push(h);
+    });
+    const fechas = Object.keys(grupos).sort((a, b) => new Date(b) - new Date(a));
+
+    return fechas.map(fecha => {
+      const tarjetas = grupos[fecha].map(h => {
+        const restante = restanteDeLote(item, h);
+        let color = 'verde';
+        if (restante <= 0) color = 'rojo';
+        else if (h.id === idEnConsumo) color = 'amarillo';
+        return `<div class="lote-card lote-${color}" data-lote-id="${h.id}">
+          <b>${h.cantidad} un.</b>
+          <span>${restante > 0 ? `quedan ${restante}` : 'agotado'}</span>
+        </div>`;
+      }).join('');
+      return `<div class="hist-fecha-group">
+        <div class="hist-fecha-titulo">${formatFecha(fecha)}</div>
+        <div class="hist-tarjetas">${tarjetas}</div>
+        <div class="hist-detalle" style="display:none;"></div>
+      </div>`;
+    }).join('');
+  }
+
+  function detalleLoteHTML(item, h){
+    const partes = [];
+    if (h.cantidadBulto > 0) {
+      const costoUnitBulto = h.costoBultoTotal > 0 ? (h.costoBultoTotal / (item.perCase || 1)) : null;
+      partes.push(`<div>📦 <b>${h.cantidadBulto} un.</b> compradas por bulto${h.costoBultoTotal > 0 ? ` — $${h.costoBultoTotal.toFixed(2)} el bulto ($${costoUnitBulto.toFixed(2)}/u)` : ''}</div>`);
+    }
+    if (h.cantidadUnidad > 0) {
+      partes.push(`<div>🔹 <b>${h.cantidadUnidad} un.</b> compradas sueltas${h.costoUnidadDirecta > 0 ? ` — $${h.costoUnidadDirecta.toFixed(2)} c/u` : ''}</div>`);
+    }
+    if (partes.length === 0) {
+      partes.push(`<div>${h.cantidad} un. — costo promedio $${h.costoUnit.toFixed(2)}/u</div>`);
+    }
+    const restante = restanteDeLote(item, h);
+    return `
+      <div class="hist-detalle-box">
+        <div>📅 Llegó: ${h.fechaLlegada}${h.fechaCaducidad ? ` &middot; Vence: ${h.fechaCaducidad}` : ''}</div>
+        ${partes.join('')}
+        <div><b>Total del lote:</b> ${h.cantidad} unidades &middot; costo promedio $${h.costoUnit.toFixed(2)}/u</div>
+        <div><b>Estado:</b> ${restante > 0 ? `quedan ${restante} de ${h.cantidad}` : 'agotado — se consumió por completo'}</div>
+      </div>`;
+  }
+
+  function wireHistorialCards(panel, item){
+    panel.querySelectorAll('.lote-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const h = (item.historialLotes || []).find(x => x.id === card.dataset.loteId);
+        if (!h) return;
+        const grupo = card.closest('.hist-fecha-group');
+        const detalle = grupo.querySelector('.hist-detalle');
+        const yaAbierto = detalle.style.display !== 'none' && detalle.dataset.loteId === h.id;
+        if (yaAbierto) {
+          detalle.style.display = 'none';
+        } else {
+          detalle.innerHTML = detalleLoteHTML(item, h);
+          detalle.dataset.loteId = h.id;
+          detalle.style.display = 'block';
+        }
+      });
+    });
+  }
+
   function render(){
     const total = items.length;
     const agotados = items.filter(i => totalUnits(i) <= 0);
@@ -1107,6 +1301,16 @@
     }, 0);
     document.getElementById('s-valor').textContent = `$${valorInventario.toFixed(2)}`;
     document.getElementById('s-ganancia').textContent = `$${gananciaPotencial.toFixed(2)}`;
+
+    const productosVencer = items.filter(i => {
+      if (!i.usaLotes || !i.lotes || i.lotes.length === 0) return false;
+      const ordenados = [...i.lotes].sort((a, b) => new Date(a.fechaLlegada) - new Date(b.fechaLlegada));
+      const masViejo = ordenados[0];
+      if (!masViejo.fechaCaducidad) return false;
+      const dias = Math.ceil((new Date(masViejo.fechaCaducidad + 'T00:00:00') - new Date()) / 86400000);
+      return dias <= (i.diasAvisoVencimiento || 30);
+    }).length;
+    document.getElementById('s-vencer').textContent = productosVencer;
 
     updateEnvaseLabel();
 
@@ -1127,7 +1331,6 @@
           const cur = totalUnits(item);
           const isMissing = cur <= 0;
           const medida = item.medida ? ` &middot; ${esc(item.medida)}` : '';
-          const tagText = cur <= 0 ? 'Agotado' : `Quedan ${cur} un.`;
           const costoBulto = item.costPrice || 0;
           const ventaBulto = item.salePrice || 0;
           const { costoUnit, ventaUnit } = preciosPorUnidad(item);
@@ -1135,35 +1338,109 @@
           const esPerdida = ventaBulto > 0 && ventaUnit <= costoUnit;
           const detalleCosto = item.costPriceModo === 'unidad' ? 'costo cargado por unidad' : `bulto: $${costoBulto.toFixed(2)} costo`;
           const detalleVenta = item.salePriceModo === 'unidad' ? 'venta cargada por unidad' : `bulto: $${ventaBulto.toFixed(2)} vta`;
+
+          // Stock bajo: umbral que vos definís por producto, distinto de "agotado" (0).
+          const esStockBajo = !isMissing && item.stockBajoUmbral > 0 && cur <= item.stockBajoUmbral;
+          const tagText = isMissing ? 'Agotado' : (esStockBajo ? `⚠ Stock bajo: ${cur} un.` : `Quedan ${cur} un.`);
+          const tagClass = isMissing ? 'warn' : (esStockBajo ? 'lowstock' : 'ok');
+
           let precioInfo = '';
+          let margenBar = '';
           if (hayPrecios) {
             if (ventaBulto > 0 && costoBulto > 0) {
               const gananciaUnit = ventaUnit - costoUnit;
               const margenPct = costoUnit > 0 ? Math.round((gananciaUnit / costoUnit) * 100) : 0;
               precioInfo = `<span class="price-info ${esPerdida ? 'price-loss' : ''}">$${ventaUnit.toFixed(2)}/u vta · $${costoUnit.toFixed(2)}/u costo · ${esPerdida ? '⚠ Pérdida' : `+$${gananciaUnit.toFixed(2)}/u (${margenPct}%)`} <small>(${detalleCosto} · ${detalleVenta})</small></span>`;
+              const anchoBar = Math.max(0, Math.min(100, margenPct));
+              const colorBar = margenPct <= 0 ? 'var(--warn)' : margenPct < 15 ? '#B07E2C' : 'var(--ok)';
+              margenBar = `<div class="margin-bar-wrap"><div class="margin-bar-fill" style="width:${anchoBar}%; background:${colorBar};"></div></div>`;
             } else if (ventaBulto > 0) {
               precioInfo = `<span class="price-info">$${ventaUnit.toFixed(2)}/u vta <small>(${detalleVenta})</small></span>`;
             } else {
               precioInfo = `<span class="price-info">$${costoUnit.toFixed(2)}/u costo <small>(${detalleCosto})</small></span>`;
             }
           }
-          return `<div class="row ${isMissing ? 'missing' : ''} ${esPerdida ? 'row-loss' : ''}">
+
+          // Tendencia de costo: compara el último lote comprado contra el anterior,
+          // sin importar si ya se consumió o no.
+          let tendenciaInfo = '';
+          if (item.historialCostos && item.historialCostos.length >= 2) {
+            const ultimos = item.historialCostos;
+            const actual = ultimos[ultimos.length - 1].costoUnit;
+            const anterior = ultimos[ultimos.length - 2].costoUnit;
+            const diff = actual - anterior;
+            if (Math.abs(diff) >= 0.01) {
+              const pct = anterior > 0 ? Math.round((diff / anterior) * 100) : 0;
+              tendenciaInfo = diff > 0
+                ? `<span class="lote-badge trend-up">↑ Costo subió $${diff.toFixed(2)} (+${pct}%) desde la compra anterior</span>`
+                : `<span class="lote-badge trend-down">↓ Costo bajó $${Math.abs(diff).toFixed(2)} (${pct}%) desde la compra anterior</span>`;
+            }
+          }
+
+          // Lote más viejo: para saber cuál sacar primero, y avisar si está por vencer.
+          let loteInfo = '';
+          let porVencer = false;
+          if (item.usaLotes && item.lotes && item.lotes.length > 0) {
+            const ordenados = [...item.lotes].sort((a, b) => new Date(a.fechaLlegada) - new Date(b.fechaLlegada));
+            const masViejo = ordenados[0];
+            if (masViejo.fechaCaducidad) {
+              const hoy = new Date();
+              const vence = new Date(masViejo.fechaCaducidad + 'T00:00:00');
+              const diasRestantes = Math.ceil((vence - hoy) / 86400000);
+              const avisoAnticipacion = item.diasAvisoVencimiento || 30;
+              if (diasRestantes < 0) {
+                porVencer = true;
+                loteInfo = `<span class="lote-badge vencer">⚠ Lote vencido hace ${Math.abs(diasRestantes)} día(s) (llegó ${masViejo.fechaLlegada})</span>`;
+              } else if (diasRestantes <= avisoAnticipacion) {
+                porVencer = true;
+                loteInfo = `<span class="lote-badge vencer">⚠ Por vencer en ${diasRestantes} día(s) — vence ${masViejo.fechaCaducidad} (sacá este lote primero)</span>`;
+              } else {
+                loteInfo = `<span class="lote-badge">🕐 Lote más viejo: llegó ${masViejo.fechaLlegada}, vence ${masViejo.fechaCaducidad} (${diasRestantes} días)</span>`;
+              }
+            } else {
+              loteInfo = `<span class="lote-badge">🕐 Lote más viejo: llegó ${masViejo.fechaLlegada}</span>`;
+            }
+          }
+
+          return `<div class="row ${isMissing ? 'missing' : ''} ${esPerdida ? 'row-loss' : ''} ${esStockBajo ? 'stock-bajo' : ''} ${porVencer ? 'por-vencer' : ''}">
             <div class="rowname">
               <b>${esc(item.name)}${medida}</b>
               <span>${item.cases} ${esc(item.envase || 'envase')}(s) &times; ${item.perCase} + ${item.loose} sueltas</span>
               ${precioInfo}
+              ${margenBar}
+              ${tendenciaInfo}
+              ${loteInfo}
             </div>
-            <div class="tag ${isMissing ? 'warn' : 'ok'}">${tagText}</div>
+            <div class="tag ${tagClass}">${tagText}</div>
             <button class="qtyedit" aria-label="Corregir cantidad de ${esc(item.name)}" data-id="${item.id}">🔢</button>
             <button class="priceedit" aria-label="Corregir precios de ${esc(item.name)}" data-id="${item.id}">💲</button>
             <button class="edit" aria-label="Editar producto ${esc(item.name)}" data-id="${item.id}">✎</button>
             <button class="del" aria-label="Eliminar ${esc(item.name)}" data-id="${item.id}">&times;</button>
-          </div>`;
+          </div>
+          ${(item.historialLotes && item.historialLotes.length > 0) ? `
+          <button type="button" class="histbtn" data-id="${item.id}">📜 Historial (${item.historialLotes.length} entrega${item.historialLotes.length === 1 ? '' : 's'})</button>
+          <div class="historial-panel" id="hist-${item.id}" style="display:none;"></div>
+          ` : ''}`;
         }).join('');
         return `<h4 class="subcat-title">${esc(sub.label)}</h4>${rowsHtml}`;
       }).join('');
       return `<div class="cat-section"><h3 class="cat-title">${esc(cat.label)}</h3>${subHtml}</div>`;
     }).join('');
+
+    listEl.querySelectorAll('.histbtn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const item = items.find(i => i.id === btn.dataset.id);
+        if (!item) return;
+        const panel = document.getElementById(`hist-${item.id}`);
+        if (!panel) return;
+        const abriendo = panel.style.display === 'none';
+        panel.style.display = abriendo ? 'block' : 'none';
+        if (abriendo) {
+          panel.innerHTML = renderHistorialHTML(item);
+          wireHistorialCards(panel, item);
+        }
+      });
+    });
 
     listEl.querySelectorAll('.qtyedit').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -1261,19 +1538,78 @@
     const cases = parseInt(document.getElementById('f-cases').value, 10) || 0;
     const loose = parseInt(document.getElementById('f-loose').value, 10) || 0;
     const codigoBarras = document.getElementById('f-barcode').value.trim();
-    const costPrice = parseFloat(document.getElementById('f-costo').value) || 0;
-    const salePrice = parseFloat(document.getElementById('f-venta').value) || 0;
-    const costPriceModo = document.getElementById('f-costo-modo').value;
-    const salePriceModo = document.getElementById('f-venta-modo').value;
+    const usaLotes = document.getElementById('f-usalotes').checked;
+    const vencimiento = document.getElementById('f-vencimiento').value;
+    const diasAvisoVencimiento = parseInt(document.getElementById('f-dias-aviso').value, 10) || 30;
+    const stockBajoUmbral = parseInt(document.getElementById('f-stock-bajo').value, 10) || 0;
     if (!name) return;
-    items.push({
+
+    // Precios: según el modo elegido, "por bulto" aplica a los envases completos,
+    // "por unidad" aplica a las sueltas, y "ambos" combina las dos cosas usando
+    // las cantidades que ya pusiste arriba (envases actuales / unidades sueltas)
+    // como peso para el promedio — así el costo final por unidad queda exacto
+    // sin que tengas que calcular nada.
+    const modoPrecio = document.getElementById('f-price-mode').value;
+    const costoBultoInput = parseFloat(document.getElementById('f-costo-bulto').value) || 0;
+    const ventaBultoInput = parseFloat(document.getElementById('f-venta-bulto').value) || 0;
+    const costoUnidadInput = parseFloat(document.getElementById('f-costo-unidad').value) || 0;
+    const ventaUnidadInput = parseFloat(document.getElementById('f-venta-unidad').value) || 0;
+
+    const unidadesDesdeBulto = (modoPrecio === 'bulto') ? (cases * perCase) + loose : (modoPrecio === 'ambos' ? cases * perCase : 0);
+    const unidadesDesdeSuelta = (modoPrecio === 'unidad') ? (cases * perCase) + loose : (modoPrecio === 'ambos' ? loose : 0);
+    const totalUnidadesPrecio = unidadesDesdeBulto + unidadesDesdeSuelta;
+
+    const costoUnitBulto = costoBultoInput / perCase;
+    const ventaUnitBulto = ventaBultoInput / perCase;
+
+    let costPrice = 0, salePrice = 0;
+    if (totalUnidadesPrecio > 0) {
+      costPrice = ((costoUnitBulto * unidadesDesdeBulto) + (costoUnidadInput * unidadesDesdeSuelta)) / totalUnidadesPrecio;
+      salePrice = ((ventaUnitBulto * unidadesDesdeBulto) + (ventaUnidadInput * unidadesDesdeSuelta)) / totalUnidadesPrecio;
+    }
+
+    const nuevo = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-      name, categoria, tipoProducto, envase, medida, perCase, cases, loose, codigoBarras, costPrice, salePrice, costPriceModo, salePriceModo
-    });
+      name, categoria, tipoProducto, envase, medida, perCase, cases, loose, codigoBarras,
+      costPrice, salePrice, costPriceModo: 'unidad', salePriceModo: 'unidad',
+      usaLotes, diasAvisoVencimiento, stockBajoUmbral, lotes: [], historialCostos: [], historialLotes: []
+    };
+
+    if (cases > 0 || loose > 0) {
+      const hoy = new Date().toISOString().slice(0, 10);
+      const cantidadInicial = (cases * perCase) + loose;
+      const loteBase = {
+        id: 'l' + Date.now(), fechaLlegada: hoy, fechaCaducidad: usaLotes ? (vencimiento || '') : '',
+        cantidad: cantidadInicial, costoUnit: costPrice,
+        modoOrigen: modoPrecio,
+        cantidadBulto: unidadesDesdeBulto, costoBultoTotal: costoBultoInput, ventaBultoTotal: ventaBultoInput,
+        cantidadUnidad: unidadesDesdeSuelta, costoUnidadDirecta: costoUnidadInput, ventaUnidadDirecta: ventaUnidadInput
+      };
+      if (usaLotes) {
+        nuevo.lotes.push({ ...loteBase });
+      }
+      nuevo.historialLotes.push({ ...loteBase });
+      nuevo.historialCostos.push({ fecha: hoy, costoUnit: costPrice });
+    }
+
+    items.push(nuevo);
     save();
     render();
     form.reset();
+    document.getElementById('loteFieldsAdd').style.display = 'none';
+    document.getElementById('fPfUnidad').style.display = 'none';
+    document.getElementById('fPfBulto').style.display = 'grid';
     document.getElementById('f-name').focus();
+  });
+
+  document.getElementById('f-price-mode').addEventListener('change', (e) => {
+    const modo = e.target.value;
+    document.getElementById('fPfBulto').style.display = (modo === 'bulto' || modo === 'ambos') ? 'grid' : 'none';
+    document.getElementById('fPfUnidad').style.display = (modo === 'unidad' || modo === 'ambos') ? 'grid' : 'none';
+  });
+
+  document.getElementById('f-usalotes').addEventListener('change', (e) => {
+    document.getElementById('loteFieldsAdd').style.display = e.target.checked ? 'grid' : 'none';
   });
 
   restockForm.addEventListener('submit', (e) => {
@@ -1286,6 +1622,7 @@
     const addLoose = parseInt(document.getElementById('r-loose').value, 10) || 0;
     const totalPagado = parseFloat(document.getElementById('r-total-pagado').value) || 0;
     const unidadesRecibidas = (addCases * (item.perCase || 1)) + addLoose;
+    const vencimientoLote = document.getElementById('r-vencimiento').value;
 
     item.cases += addCases;
     item.loose += addLoose;
@@ -1303,10 +1640,36 @@
       item.costPriceModo = 'unidad';
     }
 
+    // Si el producto controla vencimiento, esta entrega también arma un lote
+    // activo (con su propia fecha de caducidad), para poder sacar primero lo
+    // más viejo. Y sea o no un producto con vencimiento, cada entrega que
+    // llega queda anotada en el historial completo, para el historial de lotes
+    // y la comparación de costo contra la compra anterior.
+    if (unidadesRecibidas > 0) {
+      if (!item.lotes) item.lotes = [];
+      if (!item.historialCostos) item.historialCostos = [];
+      if (!item.historialLotes) item.historialLotes = [];
+      const { costoUnit } = preciosPorUnidad(item);
+      const hoy = new Date().toISOString().slice(0, 10);
+      const loteBase = {
+        id: 'l' + Date.now(), fechaLlegada: hoy, fechaCaducidad: vencimientoLote || '',
+        cantidad: unidadesRecibidas, costoUnit,
+        modoOrigen: totalPagado > 0 ? 'total-pagado' : 'sin-detalle',
+        cantidadBulto: addCases * (item.perCase || 1), costoBultoTotal: 0, ventaBultoTotal: 0,
+        cantidadUnidad: addLoose, costoUnidadDirecta: 0, ventaUnidadDirecta: 0
+      };
+      if (item.usaLotes) {
+        item.lotes.push({ ...loteBase });
+      }
+      item.historialLotes.push({ ...loteBase });
+      item.historialCostos.push({ fecha: hoy, costoUnit });
+    }
+
     save();
     render();
     document.getElementById('r-cases').value = '';
     document.getElementById('r-loose').value = '';
+    document.getElementById('r-vencimiento').value = '';
     document.getElementById('r-total-pagado').value = '';
   });
 
@@ -1321,6 +1684,7 @@
     const newTotal = Math.max(0, totalUnits(item) - outUnits);
     item.cases = Math.floor(newTotal / perCase);
     item.loose = newTotal % perCase;
+    consumirLotesFIFO(item, outUnits);
     save();
     render();
     document.getElementById('o-units').value = '';
