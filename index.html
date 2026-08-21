@@ -1208,13 +1208,18 @@
     const historial = [...(item.historialLotes || [])].sort((a, b) => new Date(b.fechaLlegada) - new Date(a.fechaLlegada));
     if (historial.length === 0) return '<p class="hint">Todavía no hay entregas registradas.</p>';
 
-    // Identificar cuál es la "amarilla": entre las que todavía tienen stock,
-    // la más vieja (esa es la que el FIFO está sacando ahora).
-    const conStock = historial
-      .map(h => ({ h, restante: restanteDeLote(item, h) }))
-      .filter(x => x.restante > 0)
-      .sort((a, b) => new Date(a.h.fechaLlegada) - new Date(b.h.fechaLlegada));
-    const idEnConsumo = conStock.length > 0 ? conStock[0].h.id : null;
+    // El color se decide por DÍA, no por lote individual: si llegaron dos
+    // entregas (mismo sabor o distinto) el mismo día, las dos son verdes.
+    // Solo se marca amarillo cuando queda stock de un día MÁS VIEJO que el
+    // día más reciente con stock — esa es la mercancía que hay que priorizar.
+    const fechasConStock = new Set();
+    historial.forEach(h => {
+      if (restanteDeLote(item, h) > 0) fechasConStock.add(h.fechaLlegada);
+    });
+    let fechaMasReciente = null;
+    fechasConStock.forEach(f => {
+      if (!fechaMasReciente || new Date(f) > new Date(fechaMasReciente)) fechaMasReciente = f;
+    });
 
     const grupos = {};
     historial.forEach(h => {
@@ -1228,7 +1233,7 @@
         const restante = restanteDeLote(item, h);
         let color = 'verde';
         if (restante <= 0) color = 'rojo';
-        else if (h.id === idEnConsumo) color = 'amarillo';
+        else if (fecha !== fechaMasReciente) color = 'amarillo';
         return `<div class="lote-card lote-${color}" data-lote-id="${h.id}">
           <b>${h.cantidad} un.</b>
           <span>${restante > 0 ? `quedan ${restante}` : 'agotado'}</span>
