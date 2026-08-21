@@ -1,4 +1,7 @@
 <meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2B2620">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
 <style>
   :root{
     --ink:#2B2620;
@@ -1792,4 +1795,17 @@
 
   load();
 })();
+</script>
+
+<script>
+  // Registra el service worker para que la app funcione sin internet una vez
+  // que se abrió al menos una vez con conexión. Si el navegador no soporta
+  // esto (muy poco común hoy), simplemente sigue funcionando online como antes.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch((err) => {
+        console.error('No se pudo activar el modo sin conexión:', err);
+      });
+    });
+  }
 </script>
