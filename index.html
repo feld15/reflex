@@ -106,6 +106,11 @@
   .ocr-qty-price { display:flex; gap:6px; }
   .ocr-qty-price input { width:50%; }
   .price-mode { margin-top:4px; font-size:11px; padding:3px 4px; border:1px solid var(--line); border-radius:5px; background:var(--paper-2); color:#6b5f4a; width:100%; }
+  .hint-inline { display:block; font-size:10px; color:#6b5f4a; margin-top:3px; }
+  .mixto-warning-text { font-size:14px; line-height:1.6; margin-bottom:14px; }
+  .mixto-warning-text b { color: var(--warn); }
+  .mixto-margen-input { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
+  .mixto-margen-input input { width:80px; font-family:'Courier New', monospace; font-size:14px; padding:6px; border:1px solid var(--line); border-radius:6px; }
   .price-block { grid-column: 1 / -1; background:var(--paper-2); border:1px dashed var(--line); border-radius:8px; padding:10px; margin-bottom:8px; }
   .price-block > label { font-size:11px; color:#6b5f4a; display:block; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.4px; }
   .price-mode-select { width:100%; font-family:'Courier New', monospace; font-size:13px; padding:7px; border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink); margin-bottom:8px; }
@@ -251,8 +256,9 @@
       </div>
       <div class="price-fields-group pf-unidad" id="fPfUnidad" style="display:none;">
         <div>
-          <label>Costo por unidad (USD)</label>
+          <label id="f-costo-unidad-label">Costo por unidad (USD)</label>
           <input type="number" id="f-costo-unidad" min="0" step="0.01" placeholder="ej: 1.00" />
+          <span class="hint-inline" id="f-costo-unidad-hint" style="display:none;"></span>
         </div>
         <div>
           <label>Venta por unidad (USD)</label>
@@ -392,6 +398,16 @@
       <button type="button" class="addbtn" id="fastScanConfirm">✅ Enviar</button>
       <button type="button" class="addbtn outbtn" id="fastScanCancel">✖ Cancelar</button>
     </div>
+  </div>
+</div>
+
+<div class="scanner-modal" id="mixtoWarningModal">
+  <div class="scanner-box ocr-box">
+    <div class="scanner-header">
+      <span>⚠️ Este lote tiene costo mixto</span>
+      <button type="button" id="mixtoWarningClose" aria-label="Cerrar">&times;</button>
+    </div>
+    <div id="mixtoWarningBody"></div>
   </div>
 </div>
 
@@ -590,6 +606,101 @@
     const ventaUnit = item.salePriceModo === 'unidad' ? ventaBulto : ventaBulto / perCase;
     return { costoUnit, ventaUnit };
   }
+
+  // --- Margen deseado por defecto (para "Igualar precio" en compras mixtas) ---
+  const MARGEN_DEFAULT_KEY = 'centinela-margen-default';
+  function getMargenDefault(){
+    const v = parseFloat(localStorage.getItem(MARGEN_DEFAULT_KEY));
+    return isNaN(v) ? 0.25 : v;
+  }
+  function setMargenDefault(v){
+    localStorage.setItem(MARGEN_DEFAULT_KEY, String(v));
+  }
+
+  // --- Ventana de "este lote tiene costo mixto" ---
+  // Compara la ganancia real (pagando el recargo por fraccionar) contra la
+  // ganancia que habría dado ese mismo lote si todo se hubiera comprado por
+  // bulto completo, sin fraccionar. Si no hay pérdida real, guarda directo
+  // sin mostrar nada — la ventana solo aparece cuando de verdad hay algo que avisar.
+  const mixtoWarningModal = document.getElementById('mixtoWarningModal');
+  const mixtoWarningBody = document.getElementById('mixtoWarningBody');
+
+  function evaluarCompraMixta(datos){
+    // datos: { unidadesBulto, unidadesSuelta, costoUnitBulto, costoUnitFinal, ventaUnit, onConfirmar(salePriceFinal, perdida) }
+    const unidadesTotales = datos.unidadesBulto + datos.unidadesSuelta;
+    const recargoAplicado = datos.costoUnitFinal - datos.costoUnitBulto;
+    if (datos.unidadesSuelta <= 0 || recargoAplicado <= 0.001 || unidadesTotales <= 0 || datos.ventaUnit <= 0) {
+      datos.onConfirmar(datos.ventaUnit, 0);
+      return;
+    }
+    const gananciaActual = (datos.ventaUnit - datos.costoUnitFinal) * unidadesTotales;
+    const gananciaIdeal = (datos.ventaUnit - datos.costoUnitBulto) * unidadesTotales;
+    const perdida = gananciaIdeal - gananciaActual;
+    mostrarPasoUnoMixto(datos, gananciaActual, perdida);
+  }
+
+  function mostrarPasoUnoMixto(datos, gananciaActual, perdida){
+    mixtoWarningModal.classList.add('show');
+    mixtoWarningBody.innerHTML = `
+      <div class="mixto-warning-text">
+        Si vendés todo a <b>$${datos.ventaUnit.toFixed(2)}</b> por unidad:<br>
+        Ganancia total del lote: <b>$${gananciaActual.toFixed(2)}</b><br>
+        Perdés <b>$${perdida.toFixed(2)}</b> respecto a si todo hubiera sido comprado por bulto completo.
+      </div>
+      <div class="fastscan-actions">
+        <button type="button" class="addbtn outbtn" id="mixtoBtnDejar">Dejar precio igual y guardar</button>
+        <button type="button" class="addbtn" id="mixtoBtnIgualar">Igualar precio (recomendado)</button>
+      </div>
+    `;
+    document.getElementById('mixtoBtnDejar').addEventListener('click', () => {
+      mixtoWarningModal.classList.remove('show');
+      datos.onConfirmar(datos.ventaUnit, perdida);
+    });
+    document.getElementById('mixtoBtnIgualar').addEventListener('click', () => {
+      mostrarPasoDosMixto(datos);
+    });
+  }
+
+  function mostrarPasoDosMixto(datos){
+    const margenActual = getMargenDefault();
+    const render = (margen) => {
+      const precioAjustado = datos.costoUnitFinal * (1 + margen);
+      const unidadesTotales = datos.unidadesBulto + datos.unidadesSuelta;
+      const nuevaGanancia = (precioAjustado - datos.costoUnitFinal) * unidadesTotales;
+      mixtoWarningBody.innerHTML = `
+        <div class="mixto-margen-input">
+          <label>Margen deseado:</label>
+          <input type="number" id="mixtoMargenInput" min="0" step="0.01" value="${margen}" />
+          <span>(ej: 0.25 = 25%)</span>
+        </div>
+        <div class="mixto-warning-text">
+          Nuevo precio por unidad: <b>$${precioAjustado.toFixed(2)}</b><br>
+          Ganancia total del lote: <b>$${nuevaGanancia.toFixed(2)}</b>
+        </div>
+        <div class="fastscan-actions">
+          <button type="button" class="addbtn" id="mixtoBtnAplicar">Aplicar y guardar</button>
+          <button type="button" class="addbtn outbtn" id="mixtoBtnVolver">Volver</button>
+        </div>
+      `;
+      document.getElementById('mixtoMargenInput').addEventListener('input', (e) => {
+        const nuevo = parseFloat(e.target.value);
+        if (!isNaN(nuevo)) render(nuevo);
+      });
+      document.getElementById('mixtoBtnAplicar').addEventListener('click', () => {
+        setMargenDefault(margen);
+        mixtoWarningModal.classList.remove('show');
+        datos.onConfirmar(precioAjustado, 0);
+      });
+      document.getElementById('mixtoBtnVolver').addEventListener('click', () => {
+        evaluarCompraMixta(datos);
+      });
+    };
+    render(margenActual);
+  }
+
+  document.getElementById('mixtoWarningClose').addEventListener('click', () => {
+    mixtoWarningModal.classList.remove('show');
+  });
 
   // Convierte una medida de texto (400ml, 1L, 1.5 litros, 1kg...) a un valor
   // numérico comparable, para poder ordenar de menor a mayor dentro de una categoría.
@@ -1563,8 +1674,9 @@
     // Precios: según el modo elegido, "por bulto" aplica a los envases completos,
     // "por unidad" aplica a las sueltas, y "ambos" combina las dos cosas usando
     // las cantidades que ya pusiste arriba (envases actuales / unidades sueltas)
-    // como peso para el promedio — así el costo final por unidad queda exacto
-    // sin que tengas que calcular nada.
+    // como peso para el promedio. En modo "ambos", el campo de costo por unidad
+    // ya NO es un precio directo — es el RECARGO que se suma al precio base
+    // (el que sale de dividir el bulto), tal como se compra realmente suelto.
     const modoPrecio = document.getElementById('f-price-mode').value;
     const costoBultoInput = parseFloat(document.getElementById('f-costo-bulto').value) || 0;
     const ventaBultoInput = parseFloat(document.getElementById('f-venta-bulto').value) || 0;
@@ -1577,49 +1689,90 @@
 
     const costoUnitBulto = costoBultoInput / perCase;
     const ventaUnitBulto = ventaBultoInput / perCase;
+    // En "ambos", costoUnidadInput es el recargo; en "unidad" pura, es el precio directo.
+    const costoUnitSuelta = modoPrecio === 'ambos' ? (costoUnitBulto + costoUnidadInput) : costoUnidadInput;
 
-    let costPrice = 0, salePrice = 0;
+    let costPrice = 0, ventaUnitBlend = 0;
     if (totalUnidadesPrecio > 0) {
-      costPrice = ((costoUnitBulto * unidadesDesdeBulto) + (costoUnidadInput * unidadesDesdeSuelta)) / totalUnidadesPrecio;
-      salePrice = ((ventaUnitBulto * unidadesDesdeBulto) + (ventaUnidadInput * unidadesDesdeSuelta)) / totalUnidadesPrecio;
+      costPrice = ((costoUnitBulto * unidadesDesdeBulto) + (costoUnitSuelta * unidadesDesdeSuelta)) / totalUnidadesPrecio;
+      ventaUnitBlend = ((ventaUnitBulto * unidadesDesdeBulto) + (ventaUnidadInput * unidadesDesdeSuelta)) / totalUnidadesPrecio;
     }
 
-    const nuevo = {
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-      name, categoria, tipoProducto, envase, medida, perCase, cases, loose, codigoBarras,
-      costPrice, salePrice, costPriceModo: 'unidad', salePriceModo: 'unidad',
-      usaLotes, diasAvisoVencimiento, stockBajoUmbral, lotes: [], historialCostos: [], historialLotes: []
-    };
-
-    if (cases > 0 || loose > 0) {
-      const hoy = new Date().toISOString().slice(0, 10);
-      const cantidadInicial = (cases * perCase) + loose;
-      const loteBase = {
-        id: 'l' + Date.now(), fechaLlegada: hoy, fechaCaducidad: usaLotes ? (vencimiento || '') : '',
-        cantidad: cantidadInicial, costoUnit: costPrice,
-        modoOrigen: modoPrecio,
-        cantidadBulto: unidadesDesdeBulto, costoBultoTotal: costoBultoInput, ventaBultoTotal: ventaBultoInput,
-        cantidadUnidad: unidadesDesdeSuelta, costoUnidadDirecta: costoUnidadInput, ventaUnidadDirecta: ventaUnidadInput
+    function guardarProductoFinal(salePriceFinal, perdidaPorFraccionamiento){
+      const nuevo = {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+        name, categoria, tipoProducto, envase, medida, perCase, cases, loose, codigoBarras,
+        costPrice, salePrice: salePriceFinal, costPriceModo: 'unidad', salePriceModo: 'unidad',
+        usaLotes, diasAvisoVencimiento, stockBajoUmbral, lotes: [], historialCostos: [], historialLotes: []
       };
-      nuevo.lotes.push({ ...loteBase });
-      nuevo.historialLotes.push({ ...loteBase });
-      nuevo.historialCostos.push({ fecha: hoy, costoUnit: costPrice });
+
+      if (cases > 0 || loose > 0) {
+        const hoy = new Date().toISOString().slice(0, 10);
+        const cantidadInicial = (cases * perCase) + loose;
+        const loteBase = {
+          id: 'l' + Date.now(), fechaLlegada: hoy, fechaCaducidad: usaLotes ? (vencimiento || '') : '',
+          cantidad: cantidadInicial, costoUnit: costPrice,
+          modoOrigen: modoPrecio,
+          cantidadBulto: unidadesDesdeBulto, costoBultoTotal: costoBultoInput, ventaBultoTotal: ventaBultoInput,
+          cantidadUnidad: unidadesDesdeSuelta, costoUnidadDirecta: costoUnidadInput, ventaUnidadDirecta: ventaUnidadInput,
+          perdidaPorFraccionamiento: perdidaPorFraccionamiento || 0
+        };
+        nuevo.lotes.push({ ...loteBase });
+        nuevo.historialLotes.push({ ...loteBase });
+        nuevo.historialCostos.push({ fecha: hoy, costoUnit: costPrice });
+      }
+
+      items.push(nuevo);
+      save();
+      render();
+      form.reset();
+      document.getElementById('loteFieldsAdd').style.display = 'none';
+      document.getElementById('fPfUnidad').style.display = 'none';
+      document.getElementById('fPfBulto').style.display = 'grid';
+      actualizarEtiquetaCostoUnidad();
+      document.getElementById('f-name').focus();
     }
 
-    items.push(nuevo);
-    save();
-    render();
-    form.reset();
-    document.getElementById('loteFieldsAdd').style.display = 'none';
-    document.getElementById('fPfUnidad').style.display = 'none';
-    document.getElementById('fPfBulto').style.display = 'grid';
-    document.getElementById('f-name').focus();
+    if (modoPrecio === 'ambos') {
+      evaluarCompraMixta({
+        unidadesBulto: unidadesDesdeBulto,
+        unidadesSuelta: unidadesDesdeSuelta,
+        costoUnitBulto,
+        costoUnitFinal: costPrice,
+        ventaUnit: ventaUnitBlend,
+        onConfirmar: (salePriceFinal, perdida) => guardarProductoFinal(salePriceFinal, perdida)
+      });
+    } else {
+      guardarProductoFinal(ventaUnitBlend, 0);
+    }
   });
+
+  function actualizarEtiquetaCostoUnidad(){
+    const modo = document.getElementById('f-price-mode').value;
+    const label = document.getElementById('f-costo-unidad-label');
+    const hint = document.getElementById('f-costo-unidad-hint');
+    const costoBultoInput = parseFloat(document.getElementById('f-costo-bulto').value) || 0;
+    const perCase = parseInt(document.getElementById('f-percase').value, 10) || 1;
+    const recargoInput = parseFloat(document.getElementById('f-costo-unidad').value) || 0;
+    if (modo === 'ambos') {
+      label.textContent = 'Recargo por unidad suelta (USD)';
+      const base = costoBultoInput / perCase;
+      hint.textContent = `Precio base (del bulto): $${base.toFixed(2)}/u + recargo = $${(base + recargoInput).toFixed(2)}/u`;
+      hint.style.display = 'block';
+    } else {
+      label.textContent = 'Costo por unidad (USD)';
+      hint.style.display = 'none';
+    }
+  }
 
   document.getElementById('f-price-mode').addEventListener('change', (e) => {
     const modo = e.target.value;
     document.getElementById('fPfBulto').style.display = (modo === 'bulto' || modo === 'ambos') ? 'grid' : 'none';
     document.getElementById('fPfUnidad').style.display = (modo === 'unidad' || modo === 'ambos') ? 'grid' : 'none';
+    actualizarEtiquetaCostoUnidad();
+  });
+  ['f-costo-bulto', 'f-percase', 'f-costo-unidad'].forEach(id => {
+    document.getElementById(id).addEventListener('input', actualizarEtiquetaCostoUnidad);
   });
 
   document.getElementById('f-usalotes').addEventListener('change', (e) => {
